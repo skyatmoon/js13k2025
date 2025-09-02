@@ -100,6 +100,10 @@
         const characterEditor = document.getElementById('characterEditor');
         const scoreDisplay = document.getElementById('scoreDisplay');
         
+        // 游戏状态变量
+        let isGameOver = false;
+        let isGamePaused = false;
+        
         // 设置画布尺寸
         canvas.width = 600;
         canvas.height = 600;
@@ -120,6 +124,21 @@
         const HEART_SIZE = 15;
         const HEART_SPAWN_CHANCE = 0.02; // 2%的概率掉落心形道具
         const INVULNERABILITY_TIME = 3000; // 3秒无敌时间
+        const INITIAL_UPGRADE_SCORE = 10; // 第一次升级所需分数
+        const UPGRADE_SCORE_MULTIPLIER = 1.2; // 每次升级所需分数的增长倍数
+
+        // BUFF类型定义
+        const BUFF_TYPES = {
+            SPEED_BOOST: 'speed_boost',
+            FASTER_ATTACK: 'faster_attack',
+            STRONGER_BULLETS: 'stronger_bullets',
+            MORE_LIVES: 'more_lives',
+            FASTER_BULLETS: 'faster_bullets',
+            MORE_ENEMIES: 'more_enemies',
+            LONGER_INVULNERABILITY: 'longer_invulnerability',
+            BETTER_LOOT: 'better_loot',
+            MULTI_SHOT: 'multi_shot'
+        };
         
         // 敌人类型定义
         const ENEMY_TYPES = {
@@ -142,7 +161,19 @@
             invulnerabilityTimer: 0,
             flashTimer: 0,
             // 用于显示生命值的角色图案（简化版）
-            lifeIconPattern: Array(9).fill(false)
+            lifeIconPattern: Array(9).fill(false),
+            // BUFF相关属性
+            speedMultiplier: 1,
+            attackSpeedMultiplier: 1,
+            bulletDamageMultiplier: 1,
+            bulletSpeedMultiplier: 1,
+            invulnerabilityTimeMultiplier: 1,
+            lootChanceMultiplier: 1,
+            multiShotCount: 0,
+            // 升级相关
+            nextUpgradeScore: INITIAL_UPGRADE_SCORE,
+            currentUpgradeStep: 1,
+            upgrades: []
         };
         
         // 初始化生命图标图案（使用3x3的简化版）
@@ -173,6 +204,37 @@
         livesDisplay.style.padding = '5px';
         livesDisplay.style.borderRadius = '3px';
         gameContainer.appendChild(livesDisplay);
+
+        // 创建升级界面
+        const upgradeScreen = document.createElement('div');
+        upgradeScreen.id = 'upgradeScreen';
+        upgradeScreen.style.position = 'absolute';
+        upgradeScreen.style.top = '50%';
+        upgradeScreen.style.left = '50%';
+        upgradeScreen.style.transform = 'translate(-50%, -50%)';
+        upgradeScreen.style.width = '400px';
+        upgradeScreen.style.backgroundColor = 'rgba(0,0,0,0.9)';
+        upgradeScreen.style.borderRadius = '10px';
+        upgradeScreen.style.padding = '20px';
+        upgradeScreen.style.color = 'white';
+        upgradeScreen.style.textAlign = 'center';
+        upgradeScreen.style.display = 'none';
+        upgradeScreen.style.zIndex = '100';
+        gameContainer.appendChild(upgradeScreen);
+
+        // 添加升级标题
+        const upgradeTitle = document.createElement('h2');
+        upgradeTitle.textContent = 'Choose an Upgrade!';
+        upgradeTitle.style.marginBottom = '20px';
+        upgradeScreen.appendChild(upgradeTitle);
+
+        // 创建升级选项容器
+        const upgradeOptions = document.createElement('div');
+        upgradeOptions.id = 'upgradeOptions';
+        upgradeOptions.style.display = 'flex';
+        upgradeOptions.style.flexDirection = 'column';
+        upgradeOptions.style.gap = '10px';
+        upgradeScreen.appendChild(upgradeOptions);
         
         // 初始化角色编辑器
         function initEditor() {
@@ -201,6 +263,156 @@
             }
         }
         
+        // 生成随机升级选项
+        function generateUpgradeOptions() {
+            const allBuffs = Object.values(BUFF_TYPES);
+            const options = [];
+            
+            // 随机选择3个不同的升级选项
+            while (options.length < 3) {
+                const randomIndex = Math.floor(Math.random() * allBuffs.length);
+                const buffType = allBuffs[randomIndex];
+                
+                if (!options.includes(buffType)) {
+                    options.push(buffType);
+                }
+            }
+            
+            return options;
+        }
+        
+        // 获取升级的描述
+        function getUpgradeDescription(buffType) {
+            switch (buffType) {
+                case BUFF_TYPES.SPEED_BOOST:
+                    return 'Increase movement speed by 20%';
+                case BUFF_TYPES.FASTER_ATTACK:
+                    return 'Increase attack speed by 15%';
+                case BUFF_TYPES.STRONGER_BULLETS:
+                    return 'Increase bullet damage (1 hit kill -> 1 hit kill, just more effect)';
+                case BUFF_TYPES.MORE_LIVES:
+                    return 'Gain an extra life';
+                case BUFF_TYPES.FASTER_BULLETS:
+                    return 'Increase bullet speed by 25%';
+                case BUFF_TYPES.MORE_ENEMIES:
+                    return 'Enemy spawn rate increased, but score gain doubled';
+                case BUFF_TYPES.LONGER_INVULNERABILITY:
+                    return 'Increase invulnerability time after hit by 50%';
+                case BUFF_TYPES.BETTER_LOOT:
+                    return 'Increase heart drop chance by 50%';
+                case BUFF_TYPES.MULTI_SHOT:
+                    return 'Fire multiple bullets at once';
+                default:
+                    return 'Unknown upgrade';
+            }
+        }
+        
+        // 应用升级效果
+        function applyUpgrade(buffType) {
+            // 记录升级
+            player.upgrades.push(buffType);
+            
+            // 应用升级效果
+            switch (buffType) {
+                case BUFF_TYPES.SPEED_BOOST:
+                    player.speedMultiplier *= 1.2;
+                    break;
+                case BUFF_TYPES.FASTER_ATTACK:
+                    player.attackSpeedMultiplier *= 1.15;
+                    break;
+                case BUFF_TYPES.STRONGER_BULLETS:
+                    player.bulletDamageMultiplier *= 1.5;
+                    // 对于当前简单的1-hit kill机制，我们可以让子弹穿透敌人
+                    // 在updateBullets函数中处理
+                    break;
+                case BUFF_TYPES.MORE_LIVES:
+                    player.lives++;
+                    updateLivesDisplay();
+                    break;
+                case BUFF_TYPES.FASTER_BULLETS:
+                    player.bulletSpeedMultiplier *= 1.25;
+                    break;
+                case BUFF_TYPES.MORE_ENEMIES:
+                    // 增加敌人生成频率，但也增加分数获得
+                    // 在spawnEnemy和updateBullets中处理
+                    break;
+                case BUFF_TYPES.LONGER_INVULNERABILITY:
+                    player.invulnerabilityTimeMultiplier *= 1.5;
+                    break;
+                case BUFF_TYPES.BETTER_LOOT:
+                    player.lootChanceMultiplier *= 1.5;
+                    break;
+                case BUFF_TYPES.MULTI_SHOT:
+                    player.multiShotCount += 1;
+                    break;
+            }
+            
+            // 计算下一次升级所需的额外分数（基于当前步骤）
+            const baseScore = INITIAL_UPGRADE_SCORE;
+            const nextAdditionalScore = Math.ceil(baseScore * Math.pow(UPGRADE_SCORE_MULTIPLIER, player.currentUpgradeStep));
+            
+            // 设置下一次升级所需的总分阈值（累加）
+            player.nextUpgradeScore = score + nextAdditionalScore;
+            
+            // 增加升级步骤
+            player.currentUpgradeStep++;
+            
+            // 测试用：在控制台打印下一次升级所需信息
+            console.log(`Next upgrade at ${player.nextUpgradeScore} (additional ${nextAdditionalScore})`);
+        }
+        
+        // 显示升级界面
+        function showUpgradeScreen() {
+            // 暂停游戏
+            isGamePaused = true;
+            
+            // 清空之前的选项
+            upgradeOptions.innerHTML = '';
+             
+            // 生成随机升级选项
+            const upgradeChoices = generateUpgradeOptions();
+             
+            // 创建升级选项按钮
+            for (const buffType of upgradeChoices) {
+                const optionButton = document.createElement('button');
+                optionButton.className = 'upgradeOption';
+                optionButton.textContent = getUpgradeDescription(buffType);
+                optionButton.style.padding = '10px';
+                optionButton.style.margin = '5px';
+                optionButton.style.backgroundColor = '#444';
+                optionButton.style.color = 'white';
+                optionButton.style.border = '1px solid #666';
+                optionButton.style.borderRadius = '5px';
+                optionButton.style.cursor = 'pointer';
+                 
+                optionButton.addEventListener('click', () => {
+                    // 应用选中的升级
+                    applyUpgrade(buffType);
+                     
+                    // 隐藏升级界面
+                    upgradeScreen.style.display = 'none';
+                     
+                    // 继续游戏
+                    isGamePaused = false;
+                    lastTime = 0; // 重置时间，避免大的时间跳跃
+                });
+                 
+                upgradeOptions.appendChild(optionButton);
+            }
+             
+            // 显示升级界面
+            upgradeScreen.style.display = 'block';
+        }
+        
+        // 检查是否需要升级
+        function checkForUpgrade() {
+            if (score >= player.nextUpgradeScore) {
+                showUpgradeScreen();
+                return true;
+            }
+            return false;
+        }
+        
         // 初始化游戏
         function initGame() {
             // 重置游戏状态
@@ -219,6 +431,21 @@
             score = 0;
             lastEnemySpawn = Date.now();
             
+            // 重置升级相关属性
+            player.nextUpgradeScore = INITIAL_UPGRADE_SCORE;
+            player.currentUpgradeStep = 1;
+            player.upgrades = [];
+            player.speedMultiplier = 1;
+            player.attackSpeedMultiplier = 1;
+            player.bulletSpeedMultiplier = 1;
+            player.bulletDamageMultiplier = 1;
+            player.lootChanceMultiplier = 1;
+            player.invulnerabilityTimeMultiplier = 1;
+            player.multiShotCount = 0;
+            
+            // 隐藏升级界面
+            upgradeScreen.style.display = 'none';
+            
             // 生成初始敌人
             for (let i = 0; i < INITIAL_ENEMY_COUNT; i++) {
                 spawnEnemy();
@@ -231,58 +458,63 @@
         
         // 生成敌人
         function spawnEnemy() {
-            let x, y;
-            // 确保敌人从屏幕边缘生成
-            if (Math.random() < 0.5) {
-                x = Math.random() < 0.5 ? -ENEMY_SIZE : canvas.width;
-                y = Math.random() * canvas.height;
-            } else {
-                x = Math.random() * canvas.width;
-                y = Math.random() < 0.5 ? -ENEMY_SIZE : canvas.height;
+            // 根据升级调整敌人数量
+            const enemyCount = player.upgrades && player.upgrades.includes(BUFF_TYPES.MORE_ENEMIES) ? 2 : 1;
+            
+            for (let i = 0; i < enemyCount; i++) {
+                let x, y;
+                // 确保敌人从屏幕边缘生成
+                if (Math.random() < 0.5) {
+                    x = Math.random() < 0.5 ? -ENEMY_SIZE : canvas.width;
+                    y = Math.random() * canvas.height;
+                } else {
+                    x = Math.random() * canvas.width;
+                    y = Math.random() < 0.5 ? -ENEMY_SIZE : canvas.height;
+                }
+                
+                // 随机选择敌人类型
+                const enemyTypes = Object.values(ENEMY_TYPES);
+                const type = enemyTypes[Math.floor(Math.random() * enemyTypes.length)];
+                
+                // 根据类型设置不同的速度和属性
+                let speed, amplitude = 0, frequency = 0, rotationAngle = 0;
+                
+                switch (type) {
+                    case ENEMY_TYPES.CIRCLE:
+                        speed = ENEMY_SPEED_MIN + Math.random() * (ENEMY_SPEED_MAX - ENEMY_SPEED_MIN);
+                        break;
+                    case ENEMY_TYPES.SQUARE:
+                        speed = ENEMY_SPEED_MIN + Math.random() * (ENEMY_SPEED_MAX - 0.2 - ENEMY_SPEED_MIN);
+                        break;
+                    case ENEMY_TYPES.TRIANGLE:
+                        speed = ENEMY_SPEED_MIN + Math.random() * (ENEMY_SPEED_MAX - 0.3 - ENEMY_SPEED_MIN);
+                        break;
+                    case ENEMY_TYPES.ZIGZAG:
+                        speed = ENEMY_SPEED_MIN + Math.random() * (ENEMY_SPEED_MAX - 0.4 - ENEMY_SPEED_MIN);
+                        amplitude = 1 + Math.random() * 2; // 随机振幅
+                        frequency = 0.02 + Math.random() * 0.03; // 随机频率
+                        break;
+                    case ENEMY_TYPES.SPIRAL:
+                        speed = ENEMY_SPEED_MIN + Math.random() * (ENEMY_SPEED_MAX - 0.5 - ENEMY_SPEED_MIN);
+                        rotationAngle = 0;
+                        break;
+                }
+                
+                enemies.push({
+                    x: x,
+                    y: y,
+                    size: ENEMY_SIZE,
+                    speed: speed,
+                    type: type,
+                    isHit: false, // 用于受击闪烁效果
+                    hitTimer: 0,
+                    // 曲线运动相关属性
+                    amplitude: amplitude,
+                    frequency: frequency,
+                    rotationAngle: rotationAngle,
+                    movementProgress: 0 // 用于追踪运动进度
+                });
             }
-            
-            // 随机选择敌人类型
-            const enemyTypes = Object.values(ENEMY_TYPES);
-            const type = enemyTypes[Math.floor(Math.random() * enemyTypes.length)];
-            
-            // 根据类型设置不同的速度和属性
-            let speed, amplitude = 0, frequency = 0, rotationAngle = 0;
-            
-            switch (type) {
-                case ENEMY_TYPES.CIRCLE:
-                    speed = ENEMY_SPEED_MIN + Math.random() * (ENEMY_SPEED_MAX - ENEMY_SPEED_MIN);
-                    break;
-                case ENEMY_TYPES.SQUARE:
-                    speed = ENEMY_SPEED_MIN + Math.random() * (ENEMY_SPEED_MAX - 0.2 - ENEMY_SPEED_MIN);
-                    break;
-                case ENEMY_TYPES.TRIANGLE:
-                    speed = ENEMY_SPEED_MIN + Math.random() * (ENEMY_SPEED_MAX - 0.3 - ENEMY_SPEED_MIN);
-                    break;
-                case ENEMY_TYPES.ZIGZAG:
-                    speed = ENEMY_SPEED_MIN + Math.random() * (ENEMY_SPEED_MAX - 0.4 - ENEMY_SPEED_MIN);
-                    amplitude = 1 + Math.random() * 2; // 随机振幅
-                    frequency = 0.02 + Math.random() * 0.03; // 随机频率
-                    break;
-                case ENEMY_TYPES.SPIRAL:
-                    speed = ENEMY_SPEED_MIN + Math.random() * (ENEMY_SPEED_MAX - 0.5 - ENEMY_SPEED_MIN);
-                    rotationAngle = 0;
-                    break;
-            }
-            
-            enemies.push({
-                x: x,
-                y: y,
-                size: ENEMY_SIZE,
-                speed: speed,
-                type: type,
-                isHit: false, // 用于受击闪烁效果
-                hitTimer: 0,
-                // 曲线运动相关属性
-                amplitude: amplitude,
-                frequency: frequency,
-                rotationAngle: rotationAngle,
-                movementProgress: 0 // 用于追踪运动进度
-            });
         }
         
         // 生成子弹
@@ -359,8 +591,9 @@
             if (keys['ArrowDown'] || keys['s'] || keys['S']) player.direction.y = 1;
             if (keys['ArrowUp'] || keys['w'] || keys['W']) player.direction.y = -1;
             
-            // 移动玩家（使用固定时间步长）
-            const moveDistance = PLAYER_SPEED * (deltaTime / TIME_STEP);
+            // 移动玩家（使用固定时间步长），应用速度升级
+            const speedMultiplier = player.speedMultiplier || 1;
+            const moveDistance = PLAYER_SPEED * speedMultiplier * (deltaTime / TIME_STEP);
             player.x += player.direction.x * moveDistance;
             player.y += player.direction.y * moveDistance;
             
@@ -370,9 +603,11 @@
             if (player.y < 0) player.y = 0;
             if (player.y + PLAYER_SIZE > canvas.height) player.y = canvas.height - PLAYER_SIZE;
             
-            // 自动攻击
+            // 自动攻击，应用攻击速度升级
+            const attackSpeedMultiplier = player.attackSpeedMultiplier || 1;
+            const effectiveAttackCooldown = ATTACK_COOLDOWN * attackSpeedMultiplier;
             const now = Date.now();
-            if (now - player.lastAttackTime > ATTACK_COOLDOWN) {
+            if (now - player.lastAttackTime > effectiveAttackCooldown) {
                 attack();
                 player.lastAttackTime = now;
             }
@@ -380,7 +615,77 @@
         
         // 攻击逻辑 - 替换为发射子弹
         function attack() {
-            spawnBullet();
+            const multiShotCount = player.multiShotCount || 0;
+            
+            // 如果没有多发射击升级，只发射一颗子弹
+            if (multiShotCount === 0) {
+                spawnBullet();
+                return;
+            }
+            
+            // 有了多发射击升级，发射多颗子弹
+            // 每次升级增加2颗额外子弹（左右对称）
+            const totalBullets = 1 + multiShotCount * 2;
+            const angleSpread = Math.PI / 3; // 60度的扇形范围
+            const angleIncrement = angleSpread / (totalBullets - 1);
+            
+            // 发射扇形分布的子弹
+            for (let i = 0; i < totalBullets; i++) {
+                // 计算每个子弹的角度偏移（从左到右）
+                const angle = -angleSpread / 2 + i * angleIncrement;
+                spawnBulletWithOffset(angle);
+            }
+        }
+        
+        // 带角度偏移发射子弹
+        function spawnBulletWithOffset(angleOffset) {
+            // 计算子弹初始位置（玩家中心）
+            const bulletX = player.x + PLAYER_SIZE / 2 - BULLET_SIZE / 2;
+            const bulletY = player.y + PLAYER_SIZE / 2 - BULLET_SIZE / 2;
+            
+            // 如果有敌人，子弹朝向最近的敌人
+            let targetX = 0, targetY = 0;
+            if (enemies.length > 0) {
+                // 找到最近的敌人
+                let closestEnemy = enemies[0];
+                let closestDistance = Infinity;
+                
+                for (let enemy of enemies) {
+                    const dx = player.x + PLAYER_SIZE/2 - (enemy.x + enemy.size/2);
+                    const dy = player.y + PLAYER_SIZE/2 - (enemy.y + enemy.size/2);
+                    const distance = Math.sqrt(dx*dx + dy*dy);
+                    
+                    if (distance < closestDistance) {
+                        closestDistance = distance;
+                        closestEnemy = enemy;
+                    }
+                }
+                
+                // 计算朝向最近敌人的方向
+                const dx = closestEnemy.x + closestEnemy.size/2 - (player.x + PLAYER_SIZE/2);
+                const dy = closestEnemy.y + closestEnemy.size/2 - (player.y + PLAYER_SIZE/2);
+                const distance = Math.sqrt(dx*dx + dy*dy);
+                
+                // 应用角度偏移
+                const originalAngle = Math.atan2(dy, dx);
+                const newAngle = originalAngle + angleOffset;
+                targetX = Math.cos(newAngle);
+                targetY = Math.sin(newAngle);
+            } else {
+                // 没有敌人时，子弹向上发射，应用角度偏移
+                const originalAngle = -Math.PI / 2; // 向上
+                const newAngle = originalAngle + angleOffset;
+                targetX = Math.cos(newAngle);
+                targetY = Math.sin(newAngle);
+            }
+            
+            bullets.push({
+                x: bulletX,
+                y: bulletY,
+                size: BULLET_SIZE,
+                direction: { x: targetX, y: targetY },
+                speed: BULLET_SPEED
+            });
         }
         
         // 更新子弹（带时间步长）
@@ -388,8 +693,9 @@
             for (let i = bullets.length - 1; i >= 0; i--) {
                 const bullet = bullets[i];
                 
-                // 移动子弹（使用固定时间步长）
-                const moveDistance = bullet.speed * (deltaTime / TIME_STEP);
+                // 移动子弹（使用固定时间步长），应用子弹速度升级
+                const bulletSpeedMultiplier = player.bulletSpeedMultiplier || 1;
+                const moveDistance = bullet.speed * bulletSpeedMultiplier * (deltaTime / TIME_STEP);
                 bullet.x += bullet.direction.x * moveDistance;
                 bullet.y += bullet.direction.y * moveDistance;
                 
@@ -401,12 +707,12 @@
                 }
                 
                 // 检查子弹与敌人的碰撞
+                const canPenetrate = player.upgrades && player.upgrades.includes(BUFF_TYPES.STRONGER_BULLETS);
+                let hitEnemyCount = 0;
+                
                 for (let j = enemies.length - 1; j >= 0; j--) {
                     const enemy = enemies[j];
                     if (checkCollision(bullet, enemy, bullet.size, enemy.size)) {
-                        // 移除子弹和敌人
-                        bullets.splice(i, 1);
-                        
                         // 触发敌人受击闪烁
                         enemy.isHit = true;
                         enemy.hitTimer = 3; // 闪烁3帧
@@ -417,11 +723,18 @@
                                 const index = enemies.indexOf(enemy);
                                 if (index !== -1) {
                                     enemies.splice(index, 1);
-                                    score += 10;
+                                    
+                                    // 计算分数（应用MORE_ENEMIES升级带来的双倍分数）
+                        const baseScore = 1; // 一个敌人一分
+                        const scoreMultiplier = player.upgrades && player.upgrades.includes(BUFF_TYPES.MORE_ENEMIES) ? 2 : 1;
+                        score += baseScore * scoreMultiplier;
                                     updateScore();
                                     
-                                    // 有2%的概率生成心形道具
-                                    if (Math.random() < HEART_SPAWN_CHANCE) {
+                                    // 随机生成心形道具，应用BETTER_LOOT升级
+                                    const baseDropChance = HEART_SPAWN_CHANCE;
+                                    const lootChanceMultiplier = player.lootChanceMultiplier || 1;
+                                    const dropChance = baseDropChance * lootChanceMultiplier;
+                                    if (Math.random() < dropChance) {
                                         spawnHeart(enemy.x + enemy.size/2 - HEART_SIZE/2, 
                                                    enemy.y + enemy.size/2 - HEART_SIZE/2);
                                     }
@@ -434,8 +747,18 @@
                             }
                         }, 100);
                         
-                        break;
+                        hitEnemyCount++;
+                        
+                        // 如果子弹不能穿透，只击中一个敌人后就停止
+                        if (!canPenetrate) {
+                            break;
+                        }
                     }
+                }
+                
+                // 如果子弹击中敌人，且不能穿透，移除子弹
+                if (hitEnemyCount > 0 && !canPenetrate) {
+                    bullets.splice(i, 1);
                 }
             }
         }
@@ -599,19 +922,20 @@
                         // 减少生命值
                         player.lives--;
                         updateLivesDisplay();
-                        
+                          
                         // 设置玩家无敌状态和闪烁效果
                         player.isInvulnerable = true;
-                        player.invulnerabilityTimer = INVULNERABILITY_TIME;
+                        const invulnerabilityMultiplier = player.invulnerabilityTimeMultiplier || 1;
+                        player.invulnerabilityTimer = INVULNERABILITY_TIME * invulnerabilityMultiplier;
                         player.flashTimer = 0;
-                        
+                          
                         // 检查游戏是否结束
                         if (player.lives <= 0) {
                             endGame();
                             return;
                         }
                     }
-                    
+                      
                     // 移除与玩家碰撞的敌人
                     const index = enemies.indexOf(enemy);
                     if (index !== -1) {
@@ -797,15 +1121,15 @@
                 lastTime = timestamp;
                 nextFrameTime = timestamp;
             }
-            
+             
             // 计算时间差
             const deltaTime = timestamp - lastTime;
-            
+             
             // 更新玩家无敌状态计时器（无论是否渲染新帧，都需要更新）
             if (player.isInvulnerable) {
                 player.invulnerabilityTimer -= deltaTime;
                 player.flashTimer += deltaTime;
-                
+                 
                 // 如果无敌时间结束，恢复正常状态
                 if (player.invulnerabilityTimer <= 0) {
                     player.isInvulnerable = false;
@@ -813,43 +1137,53 @@
                     player.flashTimer = 0;
                 }
             }
-            
+             
+            // 检查是否需要升级（仅在游戏运行时）
+            if (!isGamePaused && !isGameOver) {
+                checkForUpgrade();
+            }
+             
             // 检查是否应该渲染下一帧
             if (timestamp >= nextFrameTime) {
-                // 计算帧率控制值
-                const numFramesToRender = Math.floor((timestamp - lastTime) / TARGET_FRAME_TIME);
-                
                 // 清空画布
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
-                
-                // 更新游戏状态（使用固定的时间步长）
-                updatePlayer(TIME_STEP);
-                updateEnemies(TIME_STEP);
-                updateEnemyHitEffects();
-                updateBullets(TIME_STEP);
-                updateHearts();
-                
+                 
+                // 更新游戏状态（使用固定的时间步长，仅在游戏未暂停或未结束时）
+                if (!isGamePaused && !isGameOver) {
+                    // 更新游戏状态
+                    updatePlayer(TIME_STEP);
+                    updateEnemies(TIME_STEP);
+                    updateEnemyHitEffects();
+                    updateBullets(TIME_STEP);
+                    updateHearts();
+                }
+                 
                 // 绘制游戏元素
                 drawPlayer();
                 drawEnemies();
                 drawBullets();
                 drawHearts();
-                
+                 
                 // 更新时间戳
                 lastTime = timestamp;
-                
+                 
                 // 计算下一帧应该渲染的时间
                 nextFrameTime = timestamp + TARGET_FRAME_TIME;
             }
-            
-            // 继续游戏循环
-            gameLoopId = requestAnimationFrame(gameLoop);
+             
+            // 继续游戏循环（仅在游戏未结束时）
+            if (!isGameOver) {
+                gameLoopId = requestAnimationFrame(gameLoop);
+            }
         }
         
         // 开始游戏
         function startGame() {
             editorContainer.style.display = 'none';
             gameContainer.style.display = 'block';
+             
+            isGameOver = false;
+            isGamePaused = false;
             
             initGame();
             gameLoop();
@@ -857,15 +1191,16 @@
         
         // 结束游戏
         function endGame() {
+            isGameOver = true;
             cancelAnimationFrame(gameLoopId);
-            
+             
             // 重置玩家生命值
             player.lives = 3;
-            
+             
             // 直接返回开始界面并重新初始化
             gameContainer.style.display = 'none';
             editorContainer.style.display = 'flex';
-            
+             
             // 重新初始化编辑器（保留玩家的角色设计）
             initEditor();
         }
