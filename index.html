@@ -111,10 +111,24 @@
         const ENEMY_SIZE = 15;
         const PLAYER_SPEED = 2;
         const ENEMY_SPEED_MIN = 0.5;
-        const ENEMY_SPEED_MAX = 1.2;
+        const ENEMY_SPEED_MAX = 1.5;
         const INITIAL_ENEMY_COUNT = 5;
         const ENEMY_SPAWN_INTERVAL = 3000; // 毫秒
-        const ATTACK_COOLDOWN = 200; // 攻击冷却时间
+        const ATTACK_COOLDOWN = 800; // 攻击冷却时间（调整为更容易触发）
+        const BULLET_SPEED = 5;
+        const BULLET_SIZE = 3;
+        const HEART_SIZE = 15;
+        const HEART_SPAWN_CHANCE = 0.02; // 2%的概率掉落心形道具
+        const INVULNERABILITY_TIME = 3000; // 3秒无敌时间
+        
+        // 敌人类型定义
+        const ENEMY_TYPES = {
+            CIRCLE: 'circle',
+            SQUARE: 'square',
+            TRIANGLE: 'triangle',
+            ZIGZAG: 'zigzag',
+            SPIRAL: 'spiral'
+        };
         
         // 游戏状态
         let player = {
@@ -122,14 +136,43 @@
             y: canvas.height / 2 - PLAYER_SIZE / 2,
             direction: { x: 0, y: 0 },
             characterPattern: Array(GRID_SIZE * GRID_SIZE).fill(false),
-            lastAttackTime: 0
+            lastAttackTime: 0,
+            lives: 3,
+            isInvulnerable: false,
+            invulnerabilityTimer: 0,
+            flashTimer: 0,
+            // 用于显示生命值的角色图案（简化版）
+            lifeIconPattern: Array(9).fill(false)
         };
         
+        // 初始化生命图标图案（使用3x3的简化版）
+        for (let i = 0; i < 9; i++) {
+            // 创建一个简单的角色图标（中心十字形状）
+            if (i === 4 || i === 1 || i === 3 || i === 5 || i === 7) {
+                player.lifeIconPattern[i] = true;
+            }
+        }
+        
         let enemies = [];
+        let bullets = [];
+        let hearts = [];
         let score = 0;
         let lastEnemySpawn = 0;
         let keys = {};
         let gameLoopId = null;
+        
+        // 创建生命值显示元素
+        const livesDisplay = document.createElement('div');
+        livesDisplay.id = 'livesDisplay';
+        livesDisplay.style.position = 'absolute';
+        livesDisplay.style.top = '10px';
+        livesDisplay.style.right = '10px';
+        livesDisplay.style.display = 'flex';
+        livesDisplay.style.gap = '5px';
+        livesDisplay.style.backgroundColor = 'rgba(0,0,0,0.7)';
+        livesDisplay.style.padding = '5px';
+        livesDisplay.style.borderRadius = '3px';
+        gameContainer.appendChild(livesDisplay);
         
         // 初始化角色编辑器
         function initEditor() {
@@ -164,7 +207,15 @@
             player.x = canvas.width / 2 - PLAYER_SIZE / 2;
             player.y = canvas.height / 2 - PLAYER_SIZE / 2;
             player.direction = { x: 0, y: 0 };
+            player.lastAttackTime = 0;
+            player.lives = 3; // 明确设置生命值为3
+            // 重置玩家无敌状态相关属性
+            player.isInvulnerable = false;
+            player.invulnerabilityTimer = 0;
+            player.flashTimer = 0;
             enemies = [];
+            bullets = [];
+            hearts = [];
             score = 0;
             lastEnemySpawn = Date.now();
             
@@ -173,8 +224,9 @@
                 spawnEnemy();
             }
             
-            // 更新分数显示
+            // 更新显示
             updateScore();
+            updateLivesDisplay();
         }
         
         // 生成敌人
@@ -189,11 +241,103 @@
                 y = Math.random() < 0.5 ? -ENEMY_SIZE : canvas.height;
             }
             
+            // 随机选择敌人类型
+            const enemyTypes = Object.values(ENEMY_TYPES);
+            const type = enemyTypes[Math.floor(Math.random() * enemyTypes.length)];
+            
+            // 根据类型设置不同的速度和属性
+            let speed, amplitude = 0, frequency = 0, rotationAngle = 0;
+            
+            switch (type) {
+                case ENEMY_TYPES.CIRCLE:
+                    speed = ENEMY_SPEED_MIN + Math.random() * (ENEMY_SPEED_MAX - ENEMY_SPEED_MIN);
+                    break;
+                case ENEMY_TYPES.SQUARE:
+                    speed = ENEMY_SPEED_MIN + Math.random() * (ENEMY_SPEED_MAX - 0.2 - ENEMY_SPEED_MIN);
+                    break;
+                case ENEMY_TYPES.TRIANGLE:
+                    speed = ENEMY_SPEED_MIN + Math.random() * (ENEMY_SPEED_MAX - 0.3 - ENEMY_SPEED_MIN);
+                    break;
+                case ENEMY_TYPES.ZIGZAG:
+                    speed = ENEMY_SPEED_MIN + Math.random() * (ENEMY_SPEED_MAX - 0.4 - ENEMY_SPEED_MIN);
+                    amplitude = 1 + Math.random() * 2; // 随机振幅
+                    frequency = 0.02 + Math.random() * 0.03; // 随机频率
+                    break;
+                case ENEMY_TYPES.SPIRAL:
+                    speed = ENEMY_SPEED_MIN + Math.random() * (ENEMY_SPEED_MAX - 0.5 - ENEMY_SPEED_MIN);
+                    rotationAngle = 0;
+                    break;
+            }
+            
             enemies.push({
                 x: x,
                 y: y,
                 size: ENEMY_SIZE,
-                speed: ENEMY_SPEED_MIN + Math.random() * (ENEMY_SPEED_MAX - ENEMY_SPEED_MIN)
+                speed: speed,
+                type: type,
+                isHit: false, // 用于受击闪烁效果
+                hitTimer: 0,
+                // 曲线运动相关属性
+                amplitude: amplitude,
+                frequency: frequency,
+                rotationAngle: rotationAngle,
+                movementProgress: 0 // 用于追踪运动进度
+            });
+        }
+        
+        // 生成子弹
+        function spawnBullet() {
+            // 计算子弹初始位置（玩家中心）
+            const bulletX = player.x + PLAYER_SIZE / 2 - BULLET_SIZE / 2;
+            const bulletY = player.y + PLAYER_SIZE / 2 - BULLET_SIZE / 2;
+            
+            // 如果有敌人，子弹朝向最近的敌人
+            let targetX = 0, targetY = 0;
+            if (enemies.length > 0) {
+                // 找到最近的敌人
+                let closestEnemy = enemies[0];
+                let closestDistance = Infinity;
+                
+                for (let enemy of enemies) {
+                    const dx = player.x + PLAYER_SIZE/2 - (enemy.x + enemy.size/2);
+                    const dy = player.y + PLAYER_SIZE/2 - (enemy.y + enemy.size/2);
+                    const distance = Math.sqrt(dx*dx + dy*dy);
+                    
+                    if (distance < closestDistance) {
+                        closestDistance = distance;
+                        closestEnemy = enemy;
+                    }
+                }
+                
+                // 计算朝向最近敌人的方向
+                const dx = closestEnemy.x + closestEnemy.size/2 - (player.x + PLAYER_SIZE/2);
+                const dy = closestEnemy.y + closestEnemy.size/2 - (player.y + PLAYER_SIZE/2);
+                const distance = Math.sqrt(dx*dx + dy*dy);
+                
+                targetX = dx / distance;
+                targetY = dy / distance;
+            } else {
+                // 没有敌人时，子弹向上发射
+                targetX = 0;
+                targetY = -1;
+            }
+            
+            bullets.push({
+                x: bulletX,
+                y: bulletY,
+                size: BULLET_SIZE,
+                direction: { x: targetX, y: targetY },
+                speed: BULLET_SPEED
+            });
+        }
+        
+        // 生成心形道具
+        function spawnHeart(x, y) {
+            hearts.push({
+                x: x,
+                y: y,
+                size: HEART_SIZE,
+                collected: false
             });
         }
         
@@ -205,8 +349,8 @@
                    a.y + sizeA > b.y;
         }
         
-        // 更新玩家位置
-        function updatePlayer() {
+        // 更新玩家位置（带时间步长）
+        function updatePlayer(deltaTime) {
             // 根据按键更新玩家方向
             player.direction.x = 0;
             player.direction.y = 0;
@@ -215,9 +359,10 @@
             if (keys['ArrowDown'] || keys['s'] || keys['S']) player.direction.y = 1;
             if (keys['ArrowUp'] || keys['w'] || keys['W']) player.direction.y = -1;
             
-            // 移动玩家
-            player.x += player.direction.x * PLAYER_SPEED;
-            player.y += player.direction.y * PLAYER_SPEED;
+            // 移动玩家（使用固定时间步长）
+            const moveDistance = PLAYER_SPEED * (deltaTime / TIME_STEP);
+            player.x += player.direction.x * moveDistance;
+            player.y += player.direction.y * moveDistance;
             
             // 边界检测
             if (player.x < 0) player.x = 0;
@@ -233,50 +378,245 @@
             }
         }
         
-        // 攻击逻辑
+        // 攻击逻辑 - 替换为发射子弹
         function attack() {
-            // 简单的攻击范围（玩家周围一定距离）
-            const attackRange = PLAYER_SIZE * 2;
-            
-            for (let i = enemies.length - 1; i >= 0; i--) {
-                const enemy = enemies[i];
-                const dx = player.x + PLAYER_SIZE/2 - (enemy.x + enemy.size/2);
-                const dy = player.y + PLAYER_SIZE/2 - (enemy.y + enemy.size/2);
-                const distance = Math.sqrt(dx*dx + dy*dy);
+            spawnBullet();
+        }
+        
+        // 更新子弹（带时间步长）
+        function updateBullets(deltaTime) {
+            for (let i = bullets.length - 1; i >= 0; i--) {
+                const bullet = bullets[i];
                 
-                if (distance < attackRange) {
-                    // 消灭敌人
-                    enemies.splice(i, 1);
-                    score += 10;
-                    updateScore();
-                    
-                    // 有一定概率生成新敌人
-                    if (Math.random() < 0.7) {
-                        spawnEnemy();
+                // 移动子弹（使用固定时间步长）
+                const moveDistance = bullet.speed * (deltaTime / TIME_STEP);
+                bullet.x += bullet.direction.x * moveDistance;
+                bullet.y += bullet.direction.y * moveDistance;
+                
+                // 检查子弹是否超出屏幕
+                if (bullet.x < -bullet.size || bullet.x > canvas.width ||
+                    bullet.y < -bullet.size || bullet.y > canvas.height) {
+                    bullets.splice(i, 1);
+                    continue;
+                }
+                
+                // 检查子弹与敌人的碰撞
+                for (let j = enemies.length - 1; j >= 0; j--) {
+                    const enemy = enemies[j];
+                    if (checkCollision(bullet, enemy, bullet.size, enemy.size)) {
+                        // 移除子弹和敌人
+                        bullets.splice(i, 1);
+                        
+                        // 触发敌人受击闪烁
+                        enemy.isHit = true;
+                        enemy.hitTimer = 3; // 闪烁3帧
+                        
+                        // 延迟移除敌人，先显示闪烁效果
+                        setTimeout(() => {
+                            if (enemies.includes(enemy)) {
+                                const index = enemies.indexOf(enemy);
+                                if (index !== -1) {
+                                    enemies.splice(index, 1);
+                                    score += 10;
+                                    updateScore();
+                                    
+                                    // 有2%的概率生成心形道具
+                                    if (Math.random() < HEART_SPAWN_CHANCE) {
+                                        spawnHeart(enemy.x + enemy.size/2 - HEART_SIZE/2, 
+                                                   enemy.y + enemy.size/2 - HEART_SIZE/2);
+                                    }
+                                    
+                                    // 有一定概率生成新敌人
+                                    if (Math.random() < 0.7) {
+                                        spawnEnemy();
+                                    }
+                                }
+                            }
+                        }, 100);
+                        
+                        break;
                     }
                 }
             }
         }
         
-        // 更新敌人
-        function updateEnemies() {
-            for (let enemy of enemies) {
-                // 计算方向向量
-                const dx = player.x + PLAYER_SIZE/2 - (enemy.x + enemy.size/2);
-                const dy = player.y + PLAYER_SIZE/2 - (enemy.y + enemy.size/2);
-                const distance = Math.sqrt(dx*dx + dy*dy);
+        // 更新心形道具
+        function updateHearts() {
+            for (let i = hearts.length - 1; i >= 0; i--) {
+                const heart = hearts[i];
                 
-                // 归一化方向向量
-                if (distance > 0) {
-                    enemy.x += (dx / distance) * enemy.speed;
-                    enemy.y += (dy / distance) * enemy.speed;
+                // 检查心形道具与玩家的碰撞
+                if (checkCollision(player, heart, PLAYER_SIZE, heart.size)) {
+                    // 增加生命值
+                    player.lives++;
+                    updateLivesDisplay();
+                    
+                    // 移除心形道具
+                    hearts.splice(i, 1);
                 }
+            }
+        }
+        
+        // 更新敌人受击效果
+        function updateEnemyHitEffects() {
+            for (let enemy of enemies) {
+                if (enemy.isHit) {
+                    enemy.hitTimer--;
+                    if (enemy.hitTimer <= 0) {
+                        enemy.isHit = false;
+                    }
+                }
+            }
+        }
+        
+        // 更新生命值显示
+        function updateLivesDisplay() {
+            // 清空现有图标
+            livesDisplay.innerHTML = '';
+            
+            // 添加Life:标识
+            const liveLabel = document.createElement('span');
+            liveLabel.textContent = 'Life: ';
+            liveLabel.style.marginRight = '5px';
+            livesDisplay.appendChild(liveLabel);
+            
+            // 创建生命值图标（使用用户自定义的角色形象）
+            for (let i = 0; i < player.lives; i++) {
+                const lifeCanvas = document.createElement('canvas');
+                lifeCanvas.width = 20;
+                lifeCanvas.height = 20;
+                lifeCanvas.style.display = 'inline-block';
+                lifeCanvas.style.marginRight = '2px';
+                
+                const lifeCtx = lifeCanvas.getContext('2d');
+                
+                // 绘制用户自定义的角色图标
+                lifeCtx.fillStyle = '#000';
+                const iconCellSize = Math.floor(Math.min(lifeCanvas.width, lifeCanvas.height) / GRID_SIZE);
+                const offsetX = (lifeCanvas.width - GRID_SIZE * iconCellSize) / 2;
+                const offsetY = (lifeCanvas.height - GRID_SIZE * iconCellSize) / 2;
+                
+                for (let j = 0; j < GRID_SIZE * GRID_SIZE; j++) {
+                    if (player.characterPattern[j]) {
+                        const row = Math.floor(j / GRID_SIZE);
+                        const col = j % GRID_SIZE;
+                        const x = offsetX + col * iconCellSize;
+                        const y = offsetY + row * iconCellSize;
+                        lifeCtx.fillRect(x, y, iconCellSize, iconCellSize);
+                    }
+                }
+                
+                livesDisplay.appendChild(lifeCanvas);
+            }
+        }
+        
+        // 更新敌人（带时间步长）
+        function updateEnemies(deltaTime) {
+            for (let enemy of enemies) {
+                // 增加运动进度
+                enemy.movementProgress += deltaTime * 0.001;
+                
+                let moveX = 0, moveY = 0;
+                
+                // 根据敌人类型使用不同的运动轨迹
+                switch (enemy.type) {
+                    case ENEMY_TYPES.CIRCLE:
+                    case ENEMY_TYPES.SQUARE:
+                    case ENEMY_TYPES.TRIANGLE:
+                        // 追踪玩家的基本移动
+                        const dx = player.x + PLAYER_SIZE/2 - (enemy.x + enemy.size/2);
+                        const dy = player.y + PLAYER_SIZE/2 - (enemy.y + enemy.size/2);
+                        const distance = Math.sqrt(dx*dx + dy*dy);
+                        
+                        if (distance > 0) {
+                            const moveDistance = enemy.speed * (deltaTime / TIME_STEP);
+                            moveX = (dx / distance) * moveDistance;
+                            moveY = (dy / distance) * moveDistance;
+                        }
+                        break;
+                    
+                    case ENEMY_TYPES.ZIGZAG:
+                        // 锯齿形移动（追踪玩家的同时左右摆动）
+                        const zigzagDx = player.x + PLAYER_SIZE/2 - (enemy.x + enemy.size/2);
+                        const zigzagDy = player.y + PLAYER_SIZE/2 - (enemy.y + enemy.size/2);
+                        const zigzagDistance = Math.sqrt(zigzagDx*zigzagDx + zigzagDy*zigzagDy);
+                        
+                        if (zigzagDistance > 0) {
+                            // 基础追踪移动
+                            const baseMoveDistance = enemy.speed * (deltaTime / TIME_STEP);
+                            const baseMoveX = (zigzagDx / zigzagDistance) * baseMoveDistance;
+                            const baseMoveY = (zigzagDy / zigzagDistance) * baseMoveDistance;
+                            
+                            // 计算垂直于追踪方向的摆动
+                            const perpendicularX = -baseMoveY;
+                            const perpendicularY = baseMoveX;
+                            const perpendicularLength = Math.sqrt(perpendicularX*perpendicularX + perpendicularY*perpendicularY);
+                            
+                            if (perpendicularLength > 0) {
+                                const wiggleIntensity = enemy.amplitude * Math.sin(enemy.movementProgress * enemy.frequency);
+                                moveX = baseMoveX + (perpendicularX / perpendicularLength) * wiggleIntensity;
+                                moveY = baseMoveY + (perpendicularY / perpendicularLength) * wiggleIntensity;
+                            } else {
+                                moveX = baseMoveX;
+                                moveY = baseMoveY;
+                            }
+                        }
+                        break;
+                    
+                    case ENEMY_TYPES.SPIRAL:
+                        // 螺旋形移动
+                        enemy.rotationAngle += deltaTime * 0.002 * enemy.speed;
+                        const spiralRadius = Math.min(canvas.width, canvas.height) * 0.4;
+                        const spiralCenterX = player.x + PLAYER_SIZE/2;
+                        const spiralCenterY = player.y + PLAYER_SIZE/2;
+                        
+                        // 计算螺旋轨迹上的点
+                        const t = enemy.movementProgress * 0.5;
+                        const spiralX = spiralCenterX + spiralRadius * t * Math.cos(enemy.rotationAngle + t);
+                        const spiralY = spiralCenterY + spiralRadius * t * Math.sin(enemy.rotationAngle + t);
+                        
+                        // 向螺旋轨迹上的点移动
+                        const spiralDx = spiralX - (enemy.x + enemy.size/2);
+                        const spiralDy = spiralY - (enemy.y + enemy.size/2);
+                        const spiralDistance = Math.sqrt(spiralDx*spiralDx + spiralDy*spiralDy);
+                        
+                        if (spiralDistance > 0) {
+                            const moveDistance = enemy.speed * (deltaTime / TIME_STEP);
+                            moveX = (spiralDx / spiralDistance) * moveDistance;
+                            moveY = (spiralDy / spiralDistance) * moveDistance;
+                        }
+                        break;
+                }
+                
+                // 应用移动
+                enemy.x += moveX;
+                enemy.y += moveY;
                 
                 // 检查敌人与玩家的碰撞
                 if (checkCollision(player, enemy, PLAYER_SIZE, enemy.size)) {
-                    // 游戏结束
-                    endGame();
-                    return;
+                    // 如果玩家不是无敌状态
+                    if (!player.isInvulnerable) {
+                        // 减少生命值
+                        player.lives--;
+                        updateLivesDisplay();
+                        
+                        // 设置玩家无敌状态和闪烁效果
+                        player.isInvulnerable = true;
+                        player.invulnerabilityTimer = INVULNERABILITY_TIME;
+                        player.flashTimer = 0;
+                        
+                        // 检查游戏是否结束
+                        if (player.lives <= 0) {
+                            endGame();
+                            return;
+                        }
+                    }
+                    
+                    // 移除与玩家碰撞的敌人
+                    const index = enemies.indexOf(enemy);
+                    if (index !== -1) {
+                        enemies.splice(index, 1);
+                    }
                 }
             }
             
@@ -295,7 +635,18 @@
         
         // 绘制玩家
         function drawPlayer() {
-            ctx.fillStyle = '#000';
+            // 如果玩家处于无敌状态，实现闪烁效果
+            if (player.isInvulnerable) {
+                // 闪烁频率约为每秒10次
+                const shouldDraw = Math.floor(player.flashTimer / 100) % 2 === 0;
+                if (!shouldDraw) {
+                    return; // 不绘制玩家以实现闪烁
+                }
+                // 设置半透明颜色
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.7)'; // 半透明黑色
+            } else {
+                ctx.fillStyle = '#000'; // 正常黑色
+            }
             
             // 绘制玩家自定义的5x5模式
             for (let i = 0; i < GRID_SIZE * GRID_SIZE; i++) {
@@ -311,30 +662,185 @@
         
         // 绘制敌人
         function drawEnemies() {
-            // 使用不同的灰色调表示敌人
-            const enemyColors = ['#444', '#666', '#888'];
             for (let i = 0; i < enemies.length; i++) {
                 const enemy = enemies[i];
-                // 循环使用不同的颜色
-                ctx.fillStyle = enemyColors[i % enemyColors.length];
+                // 三种不同的灰色调
+                const grayLevel = 100 + (i % 3) * 50;
+                
+                ctx.fillStyle = enemy.isHit ? '#ffffff' : `rgb(${grayLevel}, ${grayLevel}, ${grayLevel})`;
+                ctx.strokeStyle = '#000000';
+                ctx.lineWidth = 1;
+                
+                // 根据敌人类型绘制不同形状
+                switch (enemy.type) {
+                    case ENEMY_TYPES.CIRCLE:
+                        // 圆形敌人（原有形状）
+                        ctx.beginPath();
+                        ctx.arc(enemy.x + enemy.size/2, enemy.y + enemy.size/2, enemy.size/2, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.stroke();
+                        break;
+                         
+                    case ENEMY_TYPES.SQUARE:
+                        // 方形敌人
+                        ctx.fillRect(enemy.x, enemy.y, enemy.size, enemy.size);
+                        ctx.strokeRect(enemy.x, enemy.y, enemy.size, enemy.size);
+                        break;
+                         
+                    case ENEMY_TYPES.TRIANGLE:
+                        // 三角形敌人
+                        ctx.beginPath();
+                        ctx.moveTo(enemy.x + enemy.size/2, enemy.y);
+                        ctx.lineTo(enemy.x, enemy.y + enemy.size);
+                        ctx.lineTo(enemy.x + enemy.size, enemy.y + enemy.size);
+                        ctx.closePath();
+                        ctx.fill();
+                        ctx.stroke();
+                        break;
+                         
+                    case ENEMY_TYPES.ZIGZAG:
+                        // 锯齿形敌人（六边形表示）
+                        const hexagonSize = enemy.size / 2;
+                        const hexagonX = enemy.x + hexagonSize;
+                        const hexagonY = enemy.y + hexagonSize;
+                        ctx.beginPath();
+                        for (let j = 0; j < 6; j++) {
+                            const angle = (Math.PI / 3) * j;
+                            const x = hexagonX + hexagonSize * Math.cos(angle);
+                            const y = hexagonY + hexagonSize * Math.sin(angle);
+                            if (j === 0) {
+                                ctx.moveTo(x, y);
+                            } else {
+                                ctx.lineTo(x, y);
+                            }
+                        }
+                        ctx.closePath();
+                        ctx.fill();
+                        ctx.stroke();
+                        break;
+                         
+                    case ENEMY_TYPES.SPIRAL:
+                        // 螺旋形敌人（八边形表示）
+                        const octagonSize = enemy.size / 2;
+                        const octagonX = enemy.x + octagonSize;
+                        const octagonY = enemy.y + octagonSize;
+                        ctx.beginPath();
+                        for (let j = 0; j < 8; j++) {
+                            const angle = (Math.PI / 4) * j;
+                            const x = octagonX + octagonSize * Math.cos(angle);
+                            const y = octagonY + octagonSize * Math.sin(angle);
+                            if (j === 0) {
+                                ctx.moveTo(x, y);
+                            } else {
+                                ctx.lineTo(x, y);
+                            }
+                        }
+                        ctx.closePath();
+                        ctx.fill();
+                        ctx.stroke();
+                        break;
+                }
+                
+                // 重置isHit状态
+                if (enemy.hitTimer > 0) {
+                    enemy.hitTimer--;
+                } else {
+                    enemy.isHit = false;
+                }
+            }
+        }
+        
+        // 绘制子弹
+        function drawBullets() {
+            ctx.fillStyle = '#000'; // 黑色子弹
+            for (let bullet of bullets) {
+                ctx.fillRect(bullet.x, bullet.y, bullet.size, bullet.size);
+            }
+        }
+        
+        // 绘制心形道具
+        function drawHearts() {
+            ctx.fillStyle = '#ff0000'; // 红色心形
+            for (let heart of hearts) {
+                // 绘制简单的心形
+                const centerX = heart.x + heart.size/2;
+                const centerY = heart.y + heart.size/2;
+                const size = heart.size/3;
+                
                 ctx.beginPath();
-                ctx.arc(enemy.x + enemy.size/2, enemy.y + enemy.size/2, enemy.size/2, 0, Math.PI * 2);
+                // 绘制心形的一半
+                ctx.moveTo(centerX, centerY - size);
+                ctx.bezierCurveTo(
+                    centerX + size*2, centerY - size*2,
+                    centerX + size*2, centerY + size,
+                    centerX, centerY + size/2
+                );
+                ctx.bezierCurveTo(
+                    centerX - size*2, centerY + size,
+                    centerX - size*2, centerY - size*2,
+                    centerX, centerY - size
+                );
                 ctx.fill();
             }
         }
         
-        // 游戏主循环
-        function gameLoop() {
-            // 清空画布
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        // 固定时间步长和帧率相关变量
+        const TIME_STEP = 16; // 约60fps
+        const TARGET_FPS = 60;
+        const TARGET_FRAME_TIME = 1000 / TARGET_FPS; // 16.67ms per frame
+        let lastTime = 0;
+        let nextFrameTime = 0;
+        
+        // 游戏主循环（锁定60fps）
+        function gameLoop(timestamp) {
+            if (!lastTime) {
+                lastTime = timestamp;
+                nextFrameTime = timestamp;
+            }
             
-            // 更新游戏状态
-            updatePlayer();
-            updateEnemies();
+            // 计算时间差
+            const deltaTime = timestamp - lastTime;
             
-            // 绘制游戏元素
-            drawPlayer();
-            drawEnemies();
+            // 更新玩家无敌状态计时器（无论是否渲染新帧，都需要更新）
+            if (player.isInvulnerable) {
+                player.invulnerabilityTimer -= deltaTime;
+                player.flashTimer += deltaTime;
+                
+                // 如果无敌时间结束，恢复正常状态
+                if (player.invulnerabilityTimer <= 0) {
+                    player.isInvulnerable = false;
+                    player.invulnerabilityTimer = 0;
+                    player.flashTimer = 0;
+                }
+            }
+            
+            // 检查是否应该渲染下一帧
+            if (timestamp >= nextFrameTime) {
+                // 计算帧率控制值
+                const numFramesToRender = Math.floor((timestamp - lastTime) / TARGET_FRAME_TIME);
+                
+                // 清空画布
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                
+                // 更新游戏状态（使用固定的时间步长）
+                updatePlayer(TIME_STEP);
+                updateEnemies(TIME_STEP);
+                updateEnemyHitEffects();
+                updateBullets(TIME_STEP);
+                updateHearts();
+                
+                // 绘制游戏元素
+                drawPlayer();
+                drawEnemies();
+                drawBullets();
+                drawHearts();
+                
+                // 更新时间戳
+                lastTime = timestamp;
+                
+                // 计算下一帧应该渲染的时间
+                nextFrameTime = timestamp + TARGET_FRAME_TIME;
+            }
             
             // 继续游戏循环
             gameLoopId = requestAnimationFrame(gameLoop);
@@ -352,6 +858,9 @@
         // 结束游戏
         function endGame() {
             cancelAnimationFrame(gameLoopId);
+            
+            // 重置玩家生命值
+            player.lives = 3;
             
             // 直接返回开始界面并重新初始化
             gameContainer.style.display = 'none';
