@@ -126,6 +126,8 @@
         const INVULNERABILITY_TIME = 3000; // 3秒无敌时间
         const INITIAL_UPGRADE_SCORE = 10; // 第一次升级所需分数
         const UPGRADE_SCORE_MULTIPLIER = 1.2; // 每次升级所需分数的增长倍数
+        const INITIAL_ENEMY_LIMIT = 100; // 初始敌人数量上限
+        const ENEMY_LIMIT_INCREMENT = 50; // 每次选择MORE_ENEMIES buff时增加的敌人数上限
 
         // BUFF类型定义
         const BUFF_TYPES = {
@@ -137,7 +139,8 @@
             MORE_ENEMIES: 'more_enemies',
             LONGER_INVULNERABILITY: 'longer_invulnerability',
             BETTER_LOOT: 'better_loot',
-            MULTI_SHOT: 'multi_shot'
+            MULTI_SHOT: 'multi_shot',
+            TRACKING_BULLETS: 'tracking_bullets' // 子弹追踪能力
         };
         
         // 敌人类型定义
@@ -170,6 +173,8 @@
             invulnerabilityTimeMultiplier: 1,
             lootChanceMultiplier: 1,
             multiShotCount: 0,
+            enemyLimit: INITIAL_ENEMY_LIMIT, // 当前敌人数量上限
+            bulletTrackingTime: 0, // 子弹追踪时间（秒），初始为0
             // 升级相关
             nextUpgradeScore: INITIAL_UPGRADE_SCORE,
             currentUpgradeStep: 1,
@@ -302,6 +307,8 @@
                     return 'Increase heart drop chance by 50%';
                 case BUFF_TYPES.MULTI_SHOT:
                     return 'Fire multiple bullets at once';
+                case BUFF_TYPES.TRACKING_BULLETS:
+                    return 'Increase bullet tracking time by 0.2 seconds';
                 default:
                     return 'Unknown upgrade';
             }
@@ -334,7 +341,9 @@
                     break;
                 case BUFF_TYPES.MORE_ENEMIES:
                     // 增加敌人生成频率，但也增加分数获得
-                    // 在spawnEnemy和updateBullets中处理
+                    // 每次选择此buff，敌人上限增加50个
+                    player.enemyLimit += ENEMY_LIMIT_INCREMENT;
+                    console.log(`Enemy limit increased to ${player.enemyLimit}`);
                     break;
                 case BUFF_TYPES.LONGER_INVULNERABILITY:
                     player.invulnerabilityTimeMultiplier *= 1.5;
@@ -344,6 +353,11 @@
                     break;
                 case BUFF_TYPES.MULTI_SHOT:
                     player.multiShotCount += 1;
+                    break;
+                case BUFF_TYPES.TRACKING_BULLETS:
+                    // 增加子弹追踪时间0.2秒
+                    player.bulletTrackingTime += 0.2;
+                    console.log(`Bullet tracking time increased to ${player.bulletTrackingTime} seconds`);
                     break;
             }
             
@@ -458,10 +472,18 @@
         
         // 生成敌人
         function spawnEnemy() {
+            // 检查是否已达到敌人数量上限
+            if (enemies.length >= player.enemyLimit) {
+                return;
+            }
+            
             // 根据升级调整敌人数量
             const enemyCount = player.upgrades && player.upgrades.includes(BUFF_TYPES.MORE_ENEMIES) ? 2 : 1;
             
-            for (let i = 0; i < enemyCount; i++) {
+            // 确保生成后不超过敌人上限
+            const canSpawnCount = Math.min(enemyCount, player.enemyLimit - enemies.length);
+            
+            for (let i = 0; i < canSpawnCount; i++) {
                 let x, y;
                 // 确保敌人从屏幕边缘生成
                 if (Math.random() < 0.5) {
@@ -525,6 +547,8 @@
             
             // 如果有敌人，子弹朝向最近的敌人
             let targetX = 0, targetY = 0;
+            let targetEnemy = null;
+            
             if (enemies.length > 0) {
                 // 找到最近的敌人
                 let closestEnemy = enemies[0];
@@ -548,6 +572,7 @@
                 
                 targetX = dx / distance;
                 targetY = dy / distance;
+                targetEnemy = closestEnemy; // 锁定目标敌人
             } else {
                 // 没有敌人时，子弹向上发射
                 targetX = 0;
@@ -559,7 +584,10 @@
                 y: bulletY,
                 size: BULLET_SIZE,
                 direction: { x: targetX, y: targetY },
-                speed: BULLET_SPEED
+                speed: BULLET_SPEED,
+                spawnTime: Date.now(), // 记录子弹发射时间
+                trackingTime: player.bulletTrackingTime, // 子弹追踪时间
+                targetEnemy: targetEnemy // 锁定的目标敌人
             });
         }
         
@@ -624,15 +652,13 @@
             }
             
             // 有了多发射击升级，发射多颗子弹
-            // 每次升级增加2颗额外子弹（左右对称）
+            // 每次升级增加2颗额外子弹（均匀分布在圆形）
             const totalBullets = 1 + multiShotCount * 2;
-            const angleSpread = Math.PI / 3; // 60度的扇形范围
-            const angleIncrement = angleSpread / (totalBullets - 1);
             
-            // 发射扇形分布的子弹
+            // 发射圆形分布的子弹
             for (let i = 0; i < totalBullets; i++) {
-                // 计算每个子弹的角度偏移（从左到右）
-                const angle = -angleSpread / 2 + i * angleIncrement;
+                // 计算每个子弹的角度（均匀分布在360度）
+                const angle = (Math.PI * 2 * i) / totalBullets;
                 spawnBulletWithOffset(angle);
             }
         }
@@ -645,6 +671,8 @@
             
             // 如果有敌人，子弹朝向最近的敌人
             let targetX = 0, targetY = 0;
+            let targetEnemy = null;
+            
             if (enemies.length > 0) {
                 // 找到最近的敌人
                 let closestEnemy = enemies[0];
@@ -671,6 +699,7 @@
                 const newAngle = originalAngle + angleOffset;
                 targetX = Math.cos(newAngle);
                 targetY = Math.sin(newAngle);
+                targetEnemy = closestEnemy; // 锁定目标敌人
             } else {
                 // 没有敌人时，子弹向上发射，应用角度偏移
                 const originalAngle = -Math.PI / 2; // 向上
@@ -684,7 +713,10 @@
                 y: bulletY,
                 size: BULLET_SIZE,
                 direction: { x: targetX, y: targetY },
-                speed: BULLET_SPEED
+                speed: BULLET_SPEED,
+                spawnTime: Date.now(), // 记录子弹发射时间
+                trackingTime: player.bulletTrackingTime, // 子弹追踪时间
+                targetEnemy: targetEnemy // 锁定的目标敌人
             });
         }
         
@@ -692,6 +724,31 @@
         function updateBullets(deltaTime) {
             for (let i = bullets.length - 1; i >= 0; i--) {
                 const bullet = bullets[i];
+                
+                // 检查子弹是否在追踪时间内，并且有锁定的目标
+                const currentTime = Date.now();
+                const bulletAge = (currentTime - bullet.spawnTime) / 1000; // 转换为秒
+                
+                if (bullet.trackingTime > 0 && bulletAge < bullet.trackingTime && bullet.targetEnemy && enemies.includes(bullet.targetEnemy)) {
+                    // 计算子弹到目标敌人的新方向
+                    const dx = bullet.targetEnemy.x + bullet.targetEnemy.size/2 - (bullet.x + bullet.size/2);
+                    const dy = bullet.targetEnemy.y + bullet.targetEnemy.size/2 - (bullet.y + bullet.size/2);
+                    const distance = Math.sqrt(dx*dx + dy*dy);
+                    
+                    if (distance > 0) {
+                        // 平滑地改变子弹方向（追踪效果）
+                        const smoothFactor = 0.1; // 追踪的平滑因子，值越小转向越平滑
+                        bullet.direction.x = bullet.direction.x * (1 - smoothFactor) + (dx / distance) * smoothFactor;
+                        bullet.direction.y = bullet.direction.y * (1 - smoothFactor) + (dy / distance) * smoothFactor;
+                        
+                        // 归一化方向向量
+                        const dirLength = Math.sqrt(bullet.direction.x*bullet.direction.x + bullet.direction.y*bullet.direction.y);
+                        if (dirLength > 0) {
+                            bullet.direction.x /= dirLength;
+                            bullet.direction.y /= dirLength;
+                        }
+                    }
+                }
                 
                 // 移动子弹（使用固定时间步长），应用子弹速度升级
                 const bulletSpeedMultiplier = player.bulletSpeedMultiplier || 1;
