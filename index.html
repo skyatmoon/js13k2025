@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>吸血鬼幸存者小站</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            background-color: #222;
+            color: #fff;
+            font-family: Arial, sans-serif;
+        }
+        #gameContainer {
+            position: relative;
+            display: none;
+        }
+        canvas {
+            background-color: #111;
+            display: block;
+        }
+        #editorContainer {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+        #characterEditor {
+            display: grid;
+            grid-template-columns: repeat(3, 40px);
+            grid-template-rows: repeat(3, 40px);
+            gap: 2px;
+        }
+        .editorCell {
+            width: 40px;
+            height: 40px;
+            border: 1px solid #444;
+            cursor: pointer;
+            background-color: #333;
+        }
+        .editorCell.filled {
+            background-color: #ff6b6b;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 18px;
+            background-color: #ff6b6b;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #ff5252;
+        }
+        #scoreDisplay {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            font-size: 20px;
+        }
+        h1 {
+            margin-top: 0;
+            color: #ff6b6b;
+        }
+    </style>
+</head>
+<body>
+    <h1>吸血鬼幸存者 - 角色编辑器</h1>
+    <div id="editorContainer">
+        <div id="characterEditor">
+            <!-- 3x3 编辑器格子将通过JS生成 -->
+        </div>
+        <button id="startGameBtn">开始游戏</button>
+    </div>
+    
+    <div id="gameContainer">
+        <div id="scoreDisplay">得分: 0</div>
+        <canvas id="gameCanvas"></canvas>
+    </div>
+
+    <script>
+        // 全局变量
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const editorContainer = document.getElementById('editorContainer');
+        const gameContainer = document.getElementById('gameContainer');
+        const startGameBtn = document.getElementById('startGameBtn');
+        const characterEditor = document.getElementById('characterEditor');
+        const scoreDisplay = document.getElementById('scoreDisplay');
+        
+        // 设置画布尺寸
+        canvas.width = 600;
+        canvas.height = 600;
+        
+        // 游戏常量
+        const CELL_SIZE = 3;
+        const PLAYER_SIZE = CELL_SIZE * 3;
+        const ENEMY_SIZE = 15;
+        const PLAYER_SPEED = 2;
+        const ENEMY_SPEED_MIN = 0.5;
+        const ENEMY_SPEED_MAX = 1.2;
+        const INITIAL_ENEMY_COUNT = 5;
+        const ENEMY_SPAWN_INTERVAL = 3000; // 毫秒
+        const ATTACK_COOLDOWN = 200; // 攻击冷却时间
+        
+        // 游戏状态
+        let player = {
+            x: canvas.width / 2 - PLAYER_SIZE / 2,
+            y: canvas.height / 2 - PLAYER_SIZE / 2,
+            direction: { x: 0, y: 0 },
+            characterPattern: Array(9).fill(false),
+            lastAttackTime: 0
+        };
+        
+        let enemies = [];
+        let score = 0;
+        let lastEnemySpawn = 0;
+        let keys = {};
+        let gameLoopId = null;
+        
+        // 初始化角色编辑器
+        function initEditor() {
+            // 默认填充中间格子
+            player.characterPattern[4] = true;
+            
+            // 创建3x3编辑器格子
+            for (let i = 0; i < 9; i++) {
+                const cell = document.createElement('div');
+                cell.className = 'editorCell';
+                if (player.characterPattern[i]) {
+                    cell.classList.add('filled');
+                }
+                cell.dataset.index = i;
+                
+                cell.addEventListener('click', () => {
+                    const index = parseInt(cell.dataset.index);
+                    player.characterPattern[index] = !player.characterPattern[index];
+                    cell.classList.toggle('filled', player.characterPattern[index]);
+                });
+                
+                characterEditor.appendChild(cell);
+            }
+        }
+        
+        // 初始化游戏
+        function initGame() {
+            // 重置游戏状态
+            player.x = canvas.width / 2 - PLAYER_SIZE / 2;
+            player.y = canvas.height / 2 - PLAYER_SIZE / 2;
+            player.direction = { x: 0, y: 0 };
+            enemies = [];
+            score = 0;
+            lastEnemySpawn = Date.now();
+            
+            // 生成初始敌人
+            for (let i = 0; i < INITIAL_ENEMY_COUNT; i++) {
+                spawnEnemy();
+            }
+            
+            // 更新分数显示
+            updateScore();
+        }
+        
+        // 生成敌人
+        function spawnEnemy() {
+            let x, y;
+            // 确保敌人从屏幕边缘生成
+            if (Math.random() < 0.5) {
+                x = Math.random() < 0.5 ? -ENEMY_SIZE : canvas.width;
+                y = Math.random() * canvas.height;
+            } else {
+                x = Math.random() * canvas.width;
+                y = Math.random() < 0.5 ? -ENEMY_SIZE : canvas.height;
+            }
+            
+            enemies.push({
+                x: x,
+                y: y,
+                size: ENEMY_SIZE,
+                speed: ENEMY_SPEED_MIN + Math.random() * (ENEMY_SPEED_MAX - ENEMY_SPEED_MIN)
+            });
+        }
+        
+        // 检查碰撞
+        function checkCollision(a, b, sizeA, sizeB) {
+            return a.x < b.x + sizeB &&
+                   a.x + sizeA > b.x &&
+                   a.y < b.y + sizeB &&
+                   a.y + sizeA > b.y;
+        }
+        
+        // 更新玩家位置
+        function updatePlayer() {
+            // 根据按键更新玩家方向
+            player.direction.x = 0;
+            player.direction.y = 0;
+            if (keys['ArrowRight'] || keys['d'] || keys['D']) player.direction.x = 1;
+            if (keys['ArrowLeft'] || keys['a'] || keys['A']) player.direction.x = -1;
+            if (keys['ArrowDown'] || keys['s'] || keys['S']) player.direction.y = 1;
+            if (keys['ArrowUp'] || keys['w'] || keys['W']) player.direction.y = -1;
+            
+            // 移动玩家
+            player.x += player.direction.x * PLAYER_SPEED;
+            player.y += player.direction.y * PLAYER_SPEED;
+            
+            // 边界检测
+            if (player.x < 0) player.x = 0;
+            if (player.x + PLAYER_SIZE > canvas.width) player.x = canvas.width - PLAYER_SIZE;
+            if (player.y < 0) player.y = 0;
+            if (player.y + PLAYER_SIZE > canvas.height) player.y = canvas.height - PLAYER_SIZE;
+            
+            // 自动攻击
+            const now = Date.now();
+            if (now - player.lastAttackTime > ATTACK_COOLDOWN) {
+                attack();
+                player.lastAttackTime = now;
+            }
+        }
+        
+        // 攻击逻辑
+        function attack() {
+            // 简单的攻击范围（玩家周围一定距离）
+            const attackRange = PLAYER_SIZE * 2;
+            
+            for (let i = enemies.length - 1; i >= 0; i--) {
+                const enemy = enemies[i];
+                const dx = player.x + PLAYER_SIZE/2 - (enemy.x + enemy.size/2);
+                const dy = player.y + PLAYER_SIZE/2 - (enemy.y + enemy.size/2);
+                const distance = Math.sqrt(dx*dx + dy*dy);
+                
+                if (distance < attackRange) {
+                    // 消灭敌人
+                    enemies.splice(i, 1);
+                    score += 10;
+                    updateScore();
+                    
+                    // 有一定概率生成新敌人
+                    if (Math.random() < 0.7) {
+                        spawnEnemy();
+                    }
+                }
+            }
+        }
+        
+        // 更新敌人
+        function updateEnemies() {
+            for (let enemy of enemies) {
+                // 计算方向向量
+                const dx = player.x + PLAYER_SIZE/2 - (enemy.x + enemy.size/2);
+                const dy = player.y + PLAYER_SIZE/2 - (enemy.y + enemy.size/2);
+                const distance = Math.sqrt(dx*dx + dy*dy);
+                
+                // 归一化方向向量
+                if (distance > 0) {
+                    enemy.x += (dx / distance) * enemy.speed;
+                    enemy.y += (dy / distance) * enemy.speed;
+                }
+                
+                // 检查敌人与玩家的碰撞
+                if (checkCollision(player, enemy, PLAYER_SIZE, enemy.size)) {
+                    // 游戏结束
+                    endGame();
+                    return;
+                }
+            }
+            
+            // 定期生成新敌人
+            const now = Date.now();
+            if (now - lastEnemySpawn > ENEMY_SPAWN_INTERVAL) {
+                spawnEnemy();
+                lastEnemySpawn = now;
+            }
+        }
+        
+        // 更新分数显示
+        function updateScore() {
+            scoreDisplay.textContent = `得分: ${score}`;
+        }
+        
+        // 绘制玩家
+        function drawPlayer() {
+            ctx.fillStyle = '#ff6b6b';
+            
+            // 绘制玩家自定义的3x3模式
+            for (let i = 0; i < 9; i++) {
+                if (player.characterPattern[i]) {
+                    const row = Math.floor(i / 3);
+                    const col = i % 3;
+                    const x = player.x + col * CELL_SIZE;
+                    const y = player.y + row * CELL_SIZE;
+                    ctx.fillRect(x, y, CELL_SIZE, CELL_SIZE);
+                }
+            }
+        }
+        
+        // 绘制敌人
+        function drawEnemies() {
+            ctx.fillStyle = '#4ecdc4';
+            for (let enemy of enemies) {
+                ctx.beginPath();
+                ctx.arc(enemy.x + enemy.size/2, enemy.y + enemy.size/2, enemy.size/2, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+        
+        // 游戏主循环
+        function gameLoop() {
+            // 清空画布
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // 更新游戏状态
+            updatePlayer();
+            updateEnemies();
+            
+            // 绘制游戏元素
+            drawPlayer();
+            drawEnemies();
+            
+            // 继续游戏循环
+            gameLoopId = requestAnimationFrame(gameLoop);
+        }
+        
+        // 开始游戏
+        function startGame() {
+            editorContainer.style.display = 'none';
+            gameContainer.style.display = 'block';
+            
+            initGame();
+            gameLoop();
+        }
+        
+        // 结束游戏
+        function endGame() {
+            cancelAnimationFrame(gameLoopId);
+            
+            alert(`游戏结束！你的得分是: ${score}`);
+            
+            gameContainer.style.display = 'none';
+            editorContainer.style.display = 'flex';
+        }
+        
+        // 事件监听
+        startGameBtn.addEventListener('click', startGame);
+        
+        // 键盘事件监听
+        window.addEventListener('keydown', (e) => {
+            keys[e.key] = true;
+        });
+        
+        window.addEventListener('keyup', (e) => {
+            keys[e.key] = false;
+        });
+        
+        // 初始化编辑器
+        initEditor();
+    </script>
+</body>
+</html>
