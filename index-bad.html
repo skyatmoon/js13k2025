@@ -1,0 +1,2198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BLACK CATSOUL</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            position: relative;
+            height: 100vh;
+            background-color: #000;
+            color: #fff;
+            font-family: Arial, sans-serif;
+        }
+
+        #startPage {
+            position: absolute;
+            top: 0;
+            left: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100%;
+            background-color: #111;
+            background-image: 
+                radial-gradient(circle at 20% 30%, rgba(255, 255, 255, 0.05) 0%, transparent 20%),
+                radial-gradient(circle at 80% 70%, rgba(255, 255, 255, 0.05) 0%, transparent 20%),
+                radial-gradient(circle at 50% 90%, rgba(255, 255, 255, 0.05) 0%, transparent 20%);
+            z-index: 10;
+        }
+        
+        #gameTitle {
+            font-size: 4rem;
+            margin-bottom: 2rem;
+            color: #fff;
+            text-shadow: 3px 3px 0 #333, -3px -3px 0 #333;
+            letter-spacing: 2px;
+            text-align: center;
+            z-index: 20;
+        }
+
+        #catBackground {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            z-index: 10;
+        }
+        
+        .blackCat {
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            background-color: #000;
+            border-radius: 50%;
+            animation: catMove 8s linear infinite;
+            z-index: 10;
+        }
+        
+        .blackCat::before {
+            content: '';
+            position: absolute;
+            top: -5px;
+            left: 5px;
+            width: 10px;
+            height: 10px;
+            background-color: #000;
+            border-radius: 50%;
+        }
+        
+        .blackCat::after {
+            content: '';
+            position: absolute;
+            top: 5px;
+            left: 30px;
+            width: 15px;
+            height: 8px;
+            background-color: #000;
+            border-radius: 50%;
+        }
+        
+        @keyframes catMove {
+            0% {
+                transform: translate(0, 0) scale(1);
+                opacity: 0.5;
+            }
+            20% {
+                transform: translate(20vw, 15vh) scale(1.1);
+                opacity: 0.8;
+            }
+            40% {
+                transform: translate(40vw, 35vh) scale(0.9);
+                opacity: 0.6;
+            }
+            60% {
+                transform: translate(60vw, 20vh) scale(1.2);
+                opacity: 0.9;
+            }
+            80% {
+                transform: translate(80vw, 50vh) scale(0.8);
+                opacity: 0.7;
+            }
+            100% {
+                transform: translate(100vw, 70vh) scale(1);
+                opacity: 0;
+            }
+        }
+
+        #startPageButton {
+            padding: 15px 40px;
+            font-size: 1.5rem;
+            font-weight: bold;
+            background-color: #333;
+            color: white;
+            border: 3px solid #fff;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+            z-index: 20;
+        }
+        
+        #startPageButton:hover {
+            background-color: #555;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.7);
+        }
+        
+        #startPageButton:active {
+            transform: translateY(0);
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.5);
+        }
+
+        #editorContainer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: none;
+            z-index: 20;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+        #gameContainer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: none;
+            z-index: 30;
+        }
+        
+        #gameContainer.show {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        canvas {
+            background-color: #fff;
+            display: block;
+            max-width: 90vw;
+            max-height: 90vh;
+        }
+        #characterEditor {
+            display: grid;
+            grid-template-columns: repeat(5, 30px);
+            grid-template-rows: repeat(5, 30px);
+            gap: 2px;
+        }
+        .editorCell {
+            width: 30px;
+            height: 30px;
+            border: 1px solid #666;
+            cursor: pointer;
+            background-color: #333;
+        }
+        .editorCell.filled {
+            background-color: #000;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 18px;
+            background-color: #000;
+            color: white;
+            border: 2px solid #fff;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #333;
+        }
+        #scoreDisplay {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            font-size: 20px;
+            background-color: rgba(0,0,0,0.7);
+            padding: 5px 10px;
+            border-radius: 3px;
+        }
+        h1 {
+            margin-top: 0;
+            color: #fff;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="startPage">
+        <h1 id="gameTitle">BLACK CATSOUL</h1>
+        <div id="catBackground">
+        </div>
+        <button id="startPageButton">START</button>
+    </div>
+    
+    <div id="editorContainer">
+        <h1>BUILD YOUR CAT</h1>
+        <div id="characterEditor">
+        </div>
+        <button id="startGameBtn">START</button>
+    </div>
+    
+    <div id="gameContainer">
+        <div id="scoreDisplay">Score: 0</div>
+        <canvas id="gameCanvas"></canvas>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const editorContainer = document.getElementById('editorContainer');
+        const gameContainer = document.getElementById('gameContainer');
+        const startGameBtn = document.getElementById('startGameBtn');
+        const characterEditor = document.getElementById('characterEditor');
+        const scoreDisplay = document.getElementById('scoreDisplay');
+        const startPage = document.getElementById('startPage');
+        const startPageButton = document.getElementById('startPageButton');
+        const catBackground = document.getElementById('catBackground');
+        const gameTitle = document.getElementById('gameTitle');
+        
+        let isGameOver = false;
+        let isGamePaused = false;
+        
+        function setCanvasSize() {
+            const size = Math.min(window.innerWidth, window.innerHeight) * 0.9;
+            canvas.width = size;
+            canvas.height = size;
+        }
+        
+        function updatePlayerPosition() {
+            if (typeof player !== 'undefined') {
+                player.x = canvas.width / 2 - PLAYER_SIZE / 2;
+                player.y = canvas.height / 2 - PLAYER_SIZE / 2;
+            }
+        }
+        
+        setCanvasSize();
+        
+        window.addEventListener('resize', () => {
+            setCanvasSize();
+            if (!isGameOver && !isGamePaused) {
+                updatePlayerPosition();
+            }
+        });
+        
+        const CELL_SIZE = 3;
+        const GRID_SIZE = 5;
+        const PLAYER_SIZE = CELL_SIZE * GRID_SIZE;
+        const ENEMY_SIZE = 15;
+        const PLAYER_SPEED = 2;
+        const ENEMY_SPEED_MIN = 0.5;
+        const ENEMY_SPEED_MAX = 1.5;
+        const INITIAL_ENEMY_COUNT = 5;
+        const ENEMY_SPAWN_INTERVAL = 3000;
+        const ATTACK_COOLDOWN = 800;
+        const BULLET_SPEED = 5;
+        const BULLET_SIZE = 3;
+        const HEART_SIZE = 15;
+        const CHEST_SIZE = 25;
+        const MERCHANT_SIZE = 30;
+        const HEART_SPAWN_CHANCE = 0.02;
+        const CHEST_DROP_CHANCE = 0.02; // 宝箱掉落概率（2%）
+        const INVULNERABILITY_TIME = 3000;
+        const INITIAL_UPGRADE_SCORE = 10;
+        const UPGRADE_SCORE_MULTIPLIER = 1.2;
+        const INITIAL_ENEMY_LIMIT = 100;
+        const ENEMY_LIMIT_INCREMENT = 50;
+
+        // 房间系统常量
+        const TOTAL_ROOMS = 14; // 13个普通房间 + 1个休息房间
+        const REST_ROOM_INDEX = 13; // 休息房间索引
+        const FINAL_ROOM_INDEX = 12; // 最终房间索引（第13个普通房间）
+        const MAP_SIZE = 180; // 增大地图显示大小（像素）
+        const ROOM_CELL_SIZE = 12; // 地图上每个房间格子大小
+        const ROOM_RADIUS = 60; // 环形布局的半径
+        const PORTAL_RADIUS = 30; // 六芒星法阵的半径
+        const PORTAL_COLOR = '#8888ff'; // 六芒星法阵的颜色
+
+
+        // BUFF类型定义
+        const BUFF_TYPES = {
+            SPEED_BOOST: 'speed_boost',
+            FASTER_ATTACK: 'faster_attack',
+            STRONGER_BULLETS: 'stronger_bullets',
+            MORE_LIVES: 'more_lives',
+            FASTER_BULLETS: 'faster_bullets',
+            MORE_ENEMIES: 'more_enemies',
+            LONGER_INVULNERABILITY: 'longer_invulnerability',
+            BETTER_LOOT: 'better_loot',
+            MULTI_SHOT: 'multi_shot',
+            TRACKING_BULLETS: 'tracking_bullets' // 子弹追踪能力
+        };
+        
+        // 敌人类型定义
+        const ENEMY_TYPES = {
+            CIRCLE: 'circle',
+            SQUARE: 'square',
+            TRIANGLE: 'triangle',
+            ZIGZAG: 'zigzag',
+            SPIRAL: 'spiral'
+        };
+        
+        // 游戏状态
+        let player = {
+            x: canvas.width / 2 - PLAYER_SIZE / 2,
+            y: canvas.height / 2 - PLAYER_SIZE / 2,
+            direction: { x: 0, y: 0 },
+            characterPattern: Array(GRID_SIZE * GRID_SIZE).fill(false),
+            lastAttackTime: 0,
+            lives: 3, // 保留用于升级逻辑
+            isInvulnerable: false,
+            invulnerabilityTimer: 0,
+            flashTimer: 0,
+            currentRoomIndex: 0,
+            // 血量相关属性
+            maxHealth: 100,
+            health: 100,
+            // BUFF相关属性
+            speedMultiplier: 1,
+            attackSpeedMultiplier: 1,
+            bulletDamageMultiplier: 1,
+            bulletSpeedMultiplier: 1,
+            invulnerabilityTimeMultiplier: 1,
+            lootChanceMultiplier: 1,
+            multiShotCount: 0,
+            enemyLimit: INITIAL_ENEMY_LIMIT, // 当前敌人数量上限
+            bulletTrackingTime: 0, // 子弹追踪时间（秒），初始为0
+            // 升级相关
+            nextUpgradeScore: INITIAL_UPGRADE_SCORE,
+            currentUpgradeStep: 1,
+            upgrades: [],
+            lifeIconPattern: [],
+            hasFreeUpgrade: false // 是否有免费升级机会（来自宝箱）
+        };
+        
+        // 初始化生命图标图案（使用3x3的简化版）
+        if (!player.lifeIconPattern) {
+            player.lifeIconPattern = [];
+        }
+        for (let i = 0; i < 9; i++) {
+            // 创建一个简单的角色图标（中心十字形状）
+            if (i === 4 || i === 1 || i === 3 || i === 5 || i === 7) {
+                player.lifeIconPattern[i] = true;
+            }
+        }
+        
+        let enemies = [];
+        let bullets = [];
+        let hearts = [];
+        let chests = [];
+        let score = 0;
+        let lastEnemySpawn = 0;
+        let keys = {};
+        let gameLoopId = null;
+        let isMerchantVisible = false; // 商人是否可见
+        let merchantInteractionRadius = 60; // 商人交互半径
+        
+        // 创建生命值显示元素
+        const livesDisplay = document.createElement('div');
+        livesDisplay.id = 'livesDisplay';
+        livesDisplay.style.position = 'absolute';
+        livesDisplay.style.top = '10px';
+        livesDisplay.style.right = '10px';
+        livesDisplay.style.display = 'flex';
+        livesDisplay.style.gap = '5px';
+        livesDisplay.style.backgroundColor = 'rgba(0,0,0,0.7)';
+        livesDisplay.style.padding = '5px';
+        livesDisplay.style.borderRadius = '3px';
+        gameContainer.appendChild(livesDisplay);
+
+        // 创建升级界面
+        const upgradeScreen = document.createElement('div');
+        upgradeScreen.id = 'upgradeScreen';
+        upgradeScreen.style.position = 'absolute';
+        upgradeScreen.style.top = '50%';
+        upgradeScreen.style.left = '50%';
+        upgradeScreen.style.transform = 'translate(-50%, -50%)';
+        upgradeScreen.style.width = '400px';
+        upgradeScreen.style.backgroundColor = 'rgba(0,0,0,0.9)';
+        upgradeScreen.style.borderRadius = '10px';
+        upgradeScreen.style.padding = '20px';
+        upgradeScreen.style.color = 'white';
+        upgradeScreen.style.textAlign = 'center';
+        upgradeScreen.style.display = 'none';
+        upgradeScreen.style.zIndex = '100';
+        gameContainer.appendChild(upgradeScreen);
+
+        // 添加升级标题
+        const upgradeTitle = document.createElement('h2');
+        upgradeTitle.textContent = 'Choose an Upgrade!';
+        upgradeTitle.style.marginBottom = '20px';
+        upgradeScreen.appendChild(upgradeTitle);
+
+        // 创建升级选项容器
+        const upgradeOptions = document.createElement('div');
+        upgradeOptions.id = 'upgradeOptions';
+        upgradeOptions.style.display = 'flex';
+        upgradeOptions.style.flexDirection = 'column';
+        upgradeOptions.style.gap = '10px';
+        upgradeScreen.appendChild(upgradeOptions);
+        
+        // 初始化角色编辑器
+        function initEditor() {
+            // 清空编辑器
+            characterEditor.innerHTML = '';
+            
+            // 默认填充中间格子 (5x5的中心是索引12)
+            player.characterPattern[12] = true;
+            
+            // 创建5x5编辑器格子
+            for (let i = 0; i < GRID_SIZE * GRID_SIZE; i++) {
+                const cell = document.createElement('div');
+                cell.className = 'editorCell';
+                if (player.characterPattern[i]) {
+                    cell.classList.add('filled');
+                }
+                cell.dataset.index = i;
+                
+                cell.addEventListener('click', () => {
+                    const index = parseInt(cell.dataset.index);
+                    player.characterPattern[index] = !player.characterPattern[index];
+                    cell.classList.toggle('filled', player.characterPattern[index]);
+                });
+                
+                characterEditor.appendChild(cell);
+            }
+        }
+        
+        // 生成随机升级选项
+        function generateUpgradeOptions() {
+            const allBuffs = Object.values(BUFF_TYPES);
+            const options = [];
+            
+            // 随机选择3个不同的升级选项
+            while (options.length < 3) {
+                const randomIndex = Math.floor(Math.random() * allBuffs.length);
+                const buffType = allBuffs[randomIndex];
+                
+                if (!options.includes(buffType)) {
+                    options.push(buffType);
+                }
+            }
+            
+            return options;
+        }
+        
+        // 获取升级的描述
+        function getUpgradeDescription(buffType) {
+            switch (buffType) {
+                case BUFF_TYPES.SPEED_BOOST:
+                    return 'Increase movement speed by 20%';
+                case BUFF_TYPES.FASTER_ATTACK:
+                    return 'Increase attack speed by 15%';
+                case BUFF_TYPES.STRONGER_BULLETS:
+                    return 'Increase bullet damage (1 hit kill -> 1 hit kill, just more effect)';
+                case BUFF_TYPES.MORE_LIVES:
+                    return 'Gain an extra life';
+                case BUFF_TYPES.FASTER_BULLETS:
+                    return 'Increase bullet speed by 25%';
+                case BUFF_TYPES.MORE_ENEMIES:
+                    return 'Enemy spawn rate increased, but score gain doubled';
+                case BUFF_TYPES.LONGER_INVULNERABILITY:
+                    return 'Increase invulnerability time after hit by 50%';
+                case BUFF_TYPES.BETTER_LOOT:
+                    return 'Increase heart drop chance by 50%';
+                case BUFF_TYPES.MULTI_SHOT:
+                    return 'Fire multiple bullets at once';
+                case BUFF_TYPES.TRACKING_BULLETS:
+                    return 'Increase bullet tracking time by 0.2 seconds';
+                default:
+                    return 'Unknown upgrade';
+            }
+        }
+        
+        // 应用升级效果
+        function applyUpgrade(buffType) {
+            // 记录升级
+            player.upgrades.push(buffType);
+            
+            // 应用升级效果
+            switch (buffType) {
+                case BUFF_TYPES.SPEED_BOOST:
+                    player.speedMultiplier *= 1.2;
+                    break;
+                case BUFF_TYPES.FASTER_ATTACK:
+                    player.attackSpeedMultiplier *= 1.15;
+                    break;
+                case BUFF_TYPES.STRONGER_BULLETS:
+                    player.bulletDamageMultiplier *= 1.5;
+                    // 对于当前简单的1-hit kill机制，我们可以让子弹穿透敌人
+                    // 在updateBullets函数中处理
+                    break;
+                case BUFF_TYPES.MORE_LIVES:
+                    // 增加血量上限
+                    const healthIncrease = 25;
+                    player.maxHealth += healthIncrease;
+                    player.health = Math.min(player.health + healthIncrease, player.maxHealth);
+                    updateLivesDisplay();
+                    break;
+                case BUFF_TYPES.FASTER_BULLETS:
+                    player.bulletSpeedMultiplier *= 1.25;
+                    break;
+                case BUFF_TYPES.MORE_ENEMIES:
+                    // 增加敌人生成频率，但也增加分数获得
+                    // 每次选择此buff，敌人上限增加50个
+                    player.enemyLimit += ENEMY_LIMIT_INCREMENT;
+                    console.log(`Enemy limit increased to ${player.enemyLimit}`);
+                    break;
+                case BUFF_TYPES.LONGER_INVULNERABILITY:
+                    player.invulnerabilityTimeMultiplier *= 1.5;
+                    break;
+                case BUFF_TYPES.BETTER_LOOT:
+                    player.lootChanceMultiplier *= 1.5;
+                    break;
+                case BUFF_TYPES.MULTI_SHOT:
+                    player.multiShotCount += 1;
+                    break;
+                case BUFF_TYPES.TRACKING_BULLETS:
+                    // 增加子弹追踪时间0.2秒
+                    player.bulletTrackingTime += 0.2;
+                    console.log(`Bullet tracking time increased to ${player.bulletTrackingTime} seconds`);
+                    break;
+            }
+            
+            // 计算下一次升级所需的额外分数（基于当前步骤）
+            const baseScore = INITIAL_UPGRADE_SCORE;
+            const nextAdditionalScore = Math.ceil(baseScore * Math.pow(UPGRADE_SCORE_MULTIPLIER, player.currentUpgradeStep));
+            
+            // 设置下一次升级所需的总分阈值（累加）
+            player.nextUpgradeScore = score + nextAdditionalScore;
+            
+            // 增加升级步骤
+            player.currentUpgradeStep++;
+            
+            // 测试用：在控制台打印下一次升级所需信息
+            console.log(`Next upgrade at ${player.nextUpgradeScore} (additional ${nextAdditionalScore})`);
+        }
+        
+        // 显示升级界面
+        function showUpgradeScreen() {
+            // 暂停游戏
+            isGamePaused = true;
+            
+            // 清空之前的选项
+            upgradeOptions.innerHTML = '';
+             
+            // 生成随机升级选项
+            const upgradeChoices = generateUpgradeOptions();
+             
+            // 创建升级选项按钮
+            for (const buffType of upgradeChoices) {
+                const optionButton = document.createElement('button');
+                optionButton.className = 'upgradeOption';
+                optionButton.textContent = getUpgradeDescription(buffType);
+                optionButton.style.padding = '10px';
+                optionButton.style.margin = '5px';
+                optionButton.style.backgroundColor = '#444';
+                optionButton.style.color = 'white';
+                optionButton.style.border = '1px solid #666';
+                optionButton.style.borderRadius = '5px';
+                optionButton.style.cursor = 'pointer';
+                 
+                optionButton.addEventListener('click', () => {
+                    // 应用选中的升级
+                    applyUpgrade(buffType);
+                    
+                    // 隐藏升级界面
+                    upgradeScreen.style.display = 'none';
+                    
+                    // 继续游戏
+                    isGamePaused = false;
+                    lastTime = 0; // 重置时间，避免大的时间跳跃
+                });
+                 
+                upgradeOptions.appendChild(optionButton);
+            }
+             
+            // 显示升级界面
+            upgradeScreen.style.display = 'block';
+        }
+        
+        // 检查是否需要升级
+        function checkForUpgrade() {
+            // 只有在非休息房间才自动弹出升级界面
+            if (score >= player.nextUpgradeScore && player.currentRoomIndex !== REST_ROOM_INDEX) {
+                // 自动保存分数需求，因为升级后会增加
+                const requiredScore = player.nextUpgradeScore - score;
+                // 显示提示
+                ctx.fillStyle = '#ffffff';
+                ctx.font = '14px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('回到休息房间找商人升级！(还需 ' + Math.floor(requiredScore) + ' 分)', canvas.width / 2, canvas.height - 40);
+                return true;
+            }
+            return false;
+        }
+        
+        // 房间系统
+        let rooms = [];
+        let mapCanvas = null;
+        let mapCtx = null;
+
+        // 生成房间
+        function generateRooms() {
+            rooms = [];
+            
+            // 创建14个房间（13个普通房间 + 1个休息房间）
+            for (let i = 0; i < TOTAL_ROOMS; i++) {
+                const isRestRoom = i === REST_ROOM_INDEX;
+                const isFinalRoom = i === FINAL_ROOM_INDEX;
+                
+                rooms.push({
+                    index: i,
+                    hasEnemies: !isRestRoom, // 休息房间没有敌人
+                    isCleared: false,
+                    connections: [], // 存储连接的房间索引
+                    position: { x: 0, y: 0 } // 将在生成地图时设置
+                });
+            }
+            
+            // 生成房间连接
+            generateRoomConnections();
+            
+            // 布局地图
+            layoutMap();
+        }
+
+        // 生成房间连接
+        function generateRoomConnections() {
+            // 连接规则：
+            // 1. 所有普通房间只与休息房间连通
+            // 2. 休息房间连接所有普通房间
+            
+            // 为每个普通房间创建连接到休息房间的连接
+            for (let i = 0; i < REST_ROOM_INDEX; i++) {
+                rooms[i].connections = [REST_ROOM_INDEX];
+            }
+            
+            // 设置休息房间的连接（连接所有普通房间）
+            rooms[REST_ROOM_INDEX].connections = [];
+            for (let i = 0; i < REST_ROOM_INDEX; i++) {
+                rooms[REST_ROOM_INDEX].connections.push(i);
+            }
+        }
+
+        // 布局地图（将房间位置可视化）
+        function layoutMap() {
+            // 休息房间位于中心
+            const centerX = MAP_SIZE / 2;
+            const centerY = MAP_SIZE / 2;
+            
+            rooms[REST_ROOM_INDEX].position = {
+                x: centerX - ROOM_CELL_SIZE / 2,
+                y: centerY - ROOM_CELL_SIZE / 2
+            };
+            
+            // 13个普通房间围绕休息房间呈环形分布
+            const angleStep = (Math.PI * 2) / 13; // 每个房间之间的角度间隔
+            
+            for (let i = 0; i < REST_ROOM_INDEX; i++) {
+                const angle = i * angleStep;
+                
+                rooms[i].position = {
+                    x: centerX - ROOM_CELL_SIZE / 2 + Math.cos(angle) * ROOM_RADIUS,
+                    y: centerY - ROOM_CELL_SIZE / 2 + Math.sin(angle) * ROOM_RADIUS
+                };
+            }
+        }
+
+        // 初始化地图显示
+        function initMapDisplay() {
+            // 检查是否已创建地图画布
+            if (!mapCanvas) {
+                // 创建地图容器
+                const mapContainer = document.createElement('div');
+                mapContainer.id = 'mapContainer';
+                mapContainer.style.position = 'absolute';
+                mapContainer.style.bottom = '10px';
+                mapContainer.style.left = '10px';
+                mapContainer.style.width = MAP_SIZE + 'px';
+                mapContainer.style.height = MAP_SIZE + 'px';
+                mapContainer.style.border = '2px solid #333';
+                mapContainer.style.backgroundColor = '#111';
+                mapContainer.style.zIndex = '5';
+                mapContainer.style.padding = '10px';
+                mapContainer.style.borderRadius = '4px';
+                
+                // 创建地图画布
+                mapCanvas = document.createElement('canvas');
+                mapCanvas.id = 'mapCanvas';
+                mapCanvas.width = MAP_SIZE;
+                mapCanvas.height = MAP_SIZE;
+                mapContainer.appendChild(mapCanvas);
+                
+                // 添加到游戏容器
+                document.body.appendChild(mapContainer);
+                
+                mapCtx = mapCanvas.getContext('2d');
+            }
+        }
+
+        // 绘制地图
+        function drawMap() {
+            if (!mapCtx) return;
+            
+            // 清空地图
+            mapCtx.clearRect(0, 0, MAP_SIZE, MAP_SIZE);
+            
+            // 绘制房间连接路径
+            mapCtx.strokeStyle = '#333';
+            mapCtx.lineWidth = 2;
+            
+            for (let room of rooms) {
+                for (let connectedIndex of room.connections) {
+                    if (connectedIndex > room.index) { // 避免重复绘制
+                        const connectedRoom = rooms[connectedIndex];
+                        mapCtx.beginPath();
+                        mapCtx.moveTo(
+                            room.position.x + ROOM_CELL_SIZE / 2,
+                            room.position.y + ROOM_CELL_SIZE / 2
+                        );
+                        mapCtx.lineTo(
+                            connectedRoom.position.x + ROOM_CELL_SIZE / 2,
+                            connectedRoom.position.y + ROOM_CELL_SIZE / 2
+                        );
+                        mapCtx.stroke();
+                    }
+                }
+            }
+            
+            // 绘制安全出口图标
+            mapCtx.fillStyle = '#666';
+            for (let room of rooms) {
+                // 计算房间的所有出口方向
+                const exits = [];
+                
+                for (let connectedIndex of room.connections) {
+                    const connectedRoom = rooms[connectedIndex];
+                    const dx = connectedRoom.position.x - room.position.x;
+                    const dy = connectedRoom.position.y - room.position.y;
+                    
+                    // 确定出口方向
+                    if (Math.abs(dx) > Math.abs(dy)) {
+                        if (dx > 0) exits.push('right');
+                        else exits.push('left');
+                    } else {
+                        if (dy > 0) exits.push('down');
+                        else exits.push('up');
+                    }
+                }
+                
+                // 绘制出口图标
+                for (let direction of exits) {
+                    let exitX, exitY;
+                    
+                    // 根据方向设置出口位置
+                    switch (direction) {
+                        case 'up':
+                            exitX = room.position.x + ROOM_CELL_SIZE / 2;
+                            exitY = room.position.y - 1;
+                            break;
+                        case 'down':
+                            exitX = room.position.x + ROOM_CELL_SIZE / 2;
+                            exitY = room.position.y + ROOM_CELL_SIZE + 1;
+                            break;
+                        case 'left':
+                            exitX = room.position.x - 1;
+                            exitY = room.position.y + ROOM_CELL_SIZE / 2;
+                            break;
+                        case 'right':
+                            exitX = room.position.x + ROOM_CELL_SIZE + 1;
+                            exitY = room.position.y + ROOM_CELL_SIZE / 2;
+                            break;
+                    }
+                    
+                    // 绘制出口图标（小方块）
+                    mapCtx.fillRect(exitX - 2, exitY - 2, 4, 4);
+                }
+            }
+            
+            // 绘制房间
+            for (let room of rooms) {
+                // 根据房间类型设置颜色
+                if (room.index === player.currentRoomIndex) {
+                    // 当前房间
+                    mapCtx.fillStyle = '#555';
+                } else if (room.isCleared) {
+                    // 已清理的房间
+                    mapCtx.fillStyle = '#444';
+                } else if (room.index === REST_ROOM_INDEX) {
+                    // 休息房间
+                    mapCtx.fillStyle = '#666';
+                } else if (room.index === FINAL_ROOM_INDEX) {
+                    // 最终房间
+                    mapCtx.fillStyle = '#777';
+                } else {
+                    // 未访问的房间
+                    mapCtx.fillStyle = '#222';
+                }
+                
+                // 绘制房间
+                mapCtx.fillRect(
+                    room.position.x,
+                    room.position.y,
+                    ROOM_CELL_SIZE,
+                    ROOM_CELL_SIZE
+                );
+                
+                // 绘制房间边框
+                if (room.index === player.currentRoomIndex) {
+                    // 当前房间用白色边框突出显示
+                    mapCtx.strokeStyle = '#fff';
+                    mapCtx.lineWidth = 2;
+                } else {
+                    mapCtx.strokeStyle = '#555';
+                    mapCtx.lineWidth = 1;
+                }
+                mapCtx.strokeRect(
+                    room.position.x,
+                    room.position.y,
+                    ROOM_CELL_SIZE,
+                    ROOM_CELL_SIZE
+                );
+                
+                // 如果是最终房间，添加特殊标记
+                if (room.index === FINAL_ROOM_INDEX) {
+                    mapCtx.strokeStyle = '#fff';
+                    mapCtx.lineWidth = 1;
+                    mapCtx.beginPath();
+                    // 绘制星形或特殊标记（用简单的十字代替）
+                    const centerX = room.position.x + ROOM_CELL_SIZE / 2;
+                    const centerY = room.position.y + ROOM_CELL_SIZE / 2;
+                    mapCtx.moveTo(centerX - 3, centerY - 3);
+                    mapCtx.lineTo(centerX + 3, centerY + 3);
+                    mapCtx.moveTo(centerX + 3, centerY - 3);
+                    mapCtx.lineTo(centerX - 3, centerY + 3);
+                    mapCtx.stroke();
+                }
+                
+                // 如果是休息房间，添加特殊标记
+                if (room.index === REST_ROOM_INDEX) {
+                    mapCtx.strokeStyle = '#fff';
+                    mapCtx.lineWidth = 1;
+                    mapCtx.beginPath();
+                    // 绘制一个简单的加号表示休息点
+                    const centerX = room.position.x + ROOM_CELL_SIZE / 2;
+                    const centerY = room.position.y + ROOM_CELL_SIZE / 2;
+                    mapCtx.moveTo(centerX - 2, centerY);
+                    mapCtx.lineTo(centerX + 2, centerY);
+                    mapCtx.moveTo(centerX, centerY - 2);
+                    mapCtx.lineTo(centerX, centerY + 2);
+                    mapCtx.stroke();
+                }
+            }
+            
+            // 绘制玩家位置（在当前房间中心）
+            const currentRoom = rooms[player.currentRoomIndex];
+            mapCtx.fillStyle = '#fff';
+            mapCtx.beginPath();
+            mapCtx.arc(
+                currentRoom.position.x + ROOM_CELL_SIZE / 2,
+                currentRoom.position.y + ROOM_CELL_SIZE / 2,
+                ROOM_CELL_SIZE / 4,
+                0,
+                Math.PI * 2
+            );
+            mapCtx.fill();
+        }
+
+        // 切换房间
+        function switchRoom(direction) {
+            const currentRoom = rooms[player.currentRoomIndex];
+            
+            // 简化版本：随机选择一个连接的房间
+            if (currentRoom.connections.length > 0) {
+                const randomIndex = Math.floor(Math.random() * currentRoom.connections.length);
+                const newRoomIndex = currentRoom.connections[randomIndex];
+                
+                // 如果是新房间，清空敌人并重新生成
+                if (newRoomIndex !== player.currentRoomIndex) {
+                    // 标记当前房间为已清理
+                    currentRoom.isCleared = true;
+                    
+                    // 切换到新房间
+                    player.currentRoomIndex = newRoomIndex;
+                    
+                    // 清空当前场景
+                    enemies = [];
+                    bullets = [];
+                    hearts = [];
+                    
+                    // 如果是普通房间，生成敌人
+                    const newRoom = rooms[newRoomIndex];
+                    if (newRoom.hasEnemies) {
+                        const enemyCount = Math.floor(Math.random() * 5) + 3; // 3-7个敌人
+                        for (let i = 0; i < enemyCount; i++) {
+                            spawnEnemy();
+                        }
+                    }
+                    
+                    // 更新地图
+                    drawMap();
+                }
+            }
+        }
+
+        // 绘制六芒星
+        function drawHexagram(ctx, centerX, centerY, radius, color) {
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            
+            // 绘制第一个三角形（向上）
+            for (let i = 0; i < 3; i++) {
+                const angle = (i * 2 * Math.PI / 3) - Math.PI / 2;
+                const x = centerX + Math.cos(angle) * radius;
+                const y = centerY + Math.sin(angle) * radius;
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.closePath();
+            
+            // 绘制第二个三角形（向下）
+            ctx.beginPath();
+            for (let i = 0; i < 3; i++) {
+                const angle = (i * 2 * Math.PI / 3) + Math.PI / 6;
+                const x = centerX + Math.cos(angle) * radius;
+                const y = centerY + Math.sin(angle) * radius;
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.closePath();
+            
+            ctx.stroke();
+        }
+        
+        // 绘制门（六芒星法阵）
+        function drawPortals() {
+            if (player.currentRoomIndex === REST_ROOM_INDEX) {
+                // 在休息房间中，绘制13个六芒星法阵
+                const centerX = canvas.width / 2;
+                const centerY = canvas.height / 2;
+                const angleStep = (Math.PI * 2) / 13;
+                const portalDistance = Math.min(canvas.width, canvas.height) * 0.4;
+                
+                for (let i = 0; i < 13; i++) {
+                    const angle = i * angleStep;
+                    const portalX = centerX + Math.cos(angle) * portalDistance;
+                    const portalY = centerY + Math.sin(angle) * portalDistance;
+                    
+                    // 为最终房间的门使用不同颜色
+                    const color = i === FINAL_ROOM_INDEX ? '#ff8888' : PORTAL_COLOR;
+                    drawHexagram(ctx, portalX, portalY, PORTAL_RADIUS, color);
+                }
+            } else {
+                // 在普通房间中，只绘制一个返回休息房间的门
+                const centerX = canvas.width / 2;
+                const centerY = canvas.height / 2;
+                drawHexagram(ctx, centerX, centerY, PORTAL_RADIUS, PORTAL_COLOR);
+            }
+        }
+        
+        // 检查玩家是否进入六芒星法阵
+        function checkRoomBoundary() {
+            const currentRoom = rooms[player.currentRoomIndex];
+            const playerCenterX = player.x + PLAYER_SIZE / 2;
+            const playerCenterY = player.y + PLAYER_SIZE / 2;
+            
+            if (currentRoom.index === REST_ROOM_INDEX) {
+                // 在休息房间中，检查玩家是否进入了某个六芒星法阵
+                const centerX = canvas.width / 2;
+                const centerY = canvas.height / 2;
+                const angleStep = (Math.PI * 2) / 13;
+                const portalDistance = Math.min(canvas.width, canvas.height) * 0.4;
+                
+                for (let i = 0; i < 13; i++) {
+                    const angle = i * angleStep;
+                    const portalX = centerX + Math.cos(angle) * portalDistance;
+                    const portalY = centerY + Math.sin(angle) * portalDistance;
+                    
+                    // 计算玩家到法阵中心的距离
+                    const dx = playerCenterX - portalX;
+                    const dy = playerCenterY - portalY;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    
+                    // 如果玩家进入了法阵
+                    if (distance <= PORTAL_RADIUS) {
+                        // 切换到对应的房间
+                        switchRoomTo(i);
+                        break;
+                    }
+                }
+            } else {
+                // 在普通房间中，检查玩家是否进入了返回休息房间的法阵
+                const centerX = canvas.width / 2;
+                const centerY = canvas.height / 2;
+                
+                // 计算玩家到法阵中心的距离
+                const dx = playerCenterX - centerX;
+                const dy = playerCenterY - centerY;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                // 如果玩家进入了法阵
+                if (distance <= PORTAL_RADIUS) {
+                    // 切换到休息房间
+                    switchRoomTo(REST_ROOM_INDEX);
+                }
+            }
+        }
+        
+        // 切换到指定房间
+        function switchRoomTo(newRoomIndex) {
+            const currentRoom = rooms[player.currentRoomIndex];
+            
+            if (newRoomIndex !== player.currentRoomIndex && currentRoom.connections.includes(newRoomIndex)) {
+                // 标记当前房间为已清理
+                currentRoom.isCleared = true;
+                
+                // 切换到新房间
+                player.currentRoomIndex = newRoomIndex;
+                
+                // 清空当前场景
+                enemies = [];
+                bullets = [];
+                hearts = [];
+                chests = [];
+                
+                // 如果是普通房间，生成敌人
+                const newRoom = rooms[newRoomIndex];
+                if (newRoom.hasEnemies) {
+                    const enemyCount = Math.floor(Math.random() * 5) + 3; // 3-7个敌人
+                    for (let i = 0; i < enemyCount; i++) {
+                        spawnEnemy();
+                    }
+                }
+                
+                // 更新商人可见状态
+                isMerchantVisible = (newRoomIndex === REST_ROOM_INDEX);
+                
+                // 更新地图
+                drawMap();
+            }
+        }
+        
+        // 原来的switchRoom函数保持不变，以便向后兼容
+        function switchRoom(direction) {
+            const currentRoom = rooms[player.currentRoomIndex];
+            
+            // 简化版本：随机选择一个连接的房间
+            if (currentRoom.connections.length > 0) {
+                const randomIndex = Math.floor(Math.random() * currentRoom.connections.length);
+                const newRoomIndex = currentRoom.connections[randomIndex];
+                switchRoomTo(newRoomIndex);
+            }
+        }
+
+        // 初始化游戏
+        function initGame() {
+            // 重置游戏状态
+            player.x = canvas.width / 2 - PLAYER_SIZE / 2;
+            player.y = canvas.height / 2 - PLAYER_SIZE / 2;
+            player.direction = { x: 0, y: 0 };
+            player.lastAttackTime = 0;
+            player.lives = 3; // 明确设置生命值为3
+            player.currentRoomIndex = REST_ROOM_INDEX; // 从休息房间开始
+            // 重置玩家无敌状态相关属性
+            player.isInvulnerable = false;
+            player.invulnerabilityTimer = 0;
+            player.flashTimer = 0;
+            enemies = [];
+            bullets = [];
+            hearts = [];
+            chests = [];
+            score = 0;
+            lastEnemySpawn = Date.now();
+            
+            // 重置升级相关属性
+            player.nextUpgradeScore = INITIAL_UPGRADE_SCORE;
+            player.currentUpgradeStep = 1;
+            player.upgrades = [];
+            player.speedMultiplier = 1;
+            player.attackSpeedMultiplier = 1;
+            player.bulletSpeedMultiplier = 1;
+            player.bulletDamageMultiplier = 1;
+            player.lootChanceMultiplier = 1;
+            player.invulnerabilityTimeMultiplier = 1;
+            player.multiShotCount = 0;
+            player.hasFreeUpgrade = false;
+            
+            // 隐藏升级界面
+            upgradeScreen.style.display = 'none';
+            
+            // 初始化房间系统
+            generateRooms();
+            initMapDisplay();
+            drawMap();
+            
+            // 在休息房间不生成敌人（因为hasEnemies为false）
+            
+            // 更新显示
+            updateScore();
+            updateLivesDisplay();
+        }
+        
+        // 生成敌人
+        function spawnEnemy() {
+            // 检查是否已达到敌人数量上限
+            if (enemies.length >= player.enemyLimit) {
+                return;
+            }
+            
+            // 根据升级调整敌人数量
+            const enemyCount = player.upgrades && player.upgrades.includes(BUFF_TYPES.MORE_ENEMIES) ? 2 : 1;
+            
+            // 确保生成后不超过敌人上限
+            const canSpawnCount = Math.min(enemyCount, player.enemyLimit - enemies.length);
+            
+            for (let i = 0; i < canSpawnCount; i++) {
+                let x, y;
+                // 确保敌人从屏幕边缘生成
+                if (Math.random() < 0.5) {
+                    x = Math.random() < 0.5 ? -ENEMY_SIZE : canvas.width;
+                    y = Math.random() * canvas.height;
+                } else {
+                    x = Math.random() * canvas.width;
+                    y = Math.random() < 0.5 ? -ENEMY_SIZE : canvas.height;
+                }
+                
+                // 随机选择敌人类型
+                const enemyTypes = Object.values(ENEMY_TYPES);
+                const type = enemyTypes[Math.floor(Math.random() * enemyTypes.length)];
+                
+                // 根据类型设置不同的速度和属性
+                let speed, amplitude = 0, frequency = 0, rotationAngle = 0;
+                
+                switch (type) {
+                    case ENEMY_TYPES.CIRCLE:
+                        speed = ENEMY_SPEED_MIN + Math.random() * (ENEMY_SPEED_MAX - ENEMY_SPEED_MIN);
+                        break;
+                    case ENEMY_TYPES.SQUARE:
+                        speed = ENEMY_SPEED_MIN + Math.random() * (ENEMY_SPEED_MAX - 0.2 - ENEMY_SPEED_MIN);
+                        break;
+                    case ENEMY_TYPES.TRIANGLE:
+                        speed = ENEMY_SPEED_MIN + Math.random() * (ENEMY_SPEED_MAX - 0.3 - ENEMY_SPEED_MIN);
+                        break;
+                    case ENEMY_TYPES.ZIGZAG:
+                        speed = ENEMY_SPEED_MIN + Math.random() * (ENEMY_SPEED_MAX - 0.4 - ENEMY_SPEED_MIN);
+                        amplitude = 1 + Math.random() * 2; // 随机振幅
+                        frequency = 0.02 + Math.random() * 0.03; // 随机频率
+                        break;
+                    case ENEMY_TYPES.SPIRAL:
+                        speed = ENEMY_SPEED_MIN + Math.random() * (ENEMY_SPEED_MAX - 0.5 - ENEMY_SPEED_MIN);
+                        rotationAngle = 0;
+                        break;
+                }
+                
+                // 根据敌人类型设置固定血量
+                let health;
+                switch (type) {
+                    case ENEMY_TYPES.CIRCLE:
+                        health = 3; // 圆形敌人3点血
+                        break;
+                    case ENEMY_TYPES.SQUARE:
+                        health = 6; // 正方形敌人6点血
+                        break;
+                    case ENEMY_TYPES.TRIANGLE:
+                        health = 4; // 三角形敌人4点血
+                        break;
+                    case ENEMY_TYPES.ZIGZAG:
+                        health = 5; // 锯齿形敌人5点血
+                        break;
+                    case ENEMY_TYPES.SPIRAL:
+                        health = 7; // 螺旋形敌人7点血
+                        break;
+                    default:
+                        health = 3;
+                }
+                
+                enemies.push({
+                    x: x,
+                    y: y,
+                    size: ENEMY_SIZE,
+                    speed: speed,
+                    type: type,
+                    health: health,
+                    maxHealth: health,
+                    isHit: false, // 用于受击闪烁效果
+                    hitTimer: 0,
+                    // 曲线运动相关属性
+                    amplitude: amplitude,
+                    frequency: frequency,
+                    rotationAngle: rotationAngle,
+                    movementProgress: 0 // 用于追踪运动进度
+                });
+            }
+        }
+        
+        // 生成子弹
+        function spawnBullet() {
+            // 计算子弹初始位置（玩家中心）
+            const bulletX = player.x + PLAYER_SIZE / 2 - BULLET_SIZE / 2;
+            const bulletY = player.y + PLAYER_SIZE / 2 - BULLET_SIZE / 2;
+            
+            // 如果有敌人，子弹朝向最近的敌人
+            let targetX = 0, targetY = 0;
+            let targetEnemy = null;
+            
+            if (enemies.length > 0) {
+                // 找到最近的敌人
+                let closestEnemy = enemies[0];
+                let closestDistance = Infinity;
+                
+                for (let enemy of enemies) {
+                    const dx = player.x + PLAYER_SIZE/2 - (enemy.x + enemy.size/2);
+                    const dy = player.y + PLAYER_SIZE/2 - (enemy.y + enemy.size/2);
+                    const distance = Math.sqrt(dx*dx + dy*dy);
+                    
+                    if (distance < closestDistance) {
+                        closestDistance = distance;
+                        closestEnemy = enemy;
+                    }
+                }
+                
+                // 计算朝向最近敌人的方向
+                const dx = closestEnemy.x + closestEnemy.size/2 - (player.x + PLAYER_SIZE/2);
+                const dy = closestEnemy.y + closestEnemy.size/2 - (player.y + PLAYER_SIZE/2);
+                const distance = Math.sqrt(dx*dx + dy*dy);
+                
+                targetX = dx / distance;
+                targetY = dy / distance;
+                targetEnemy = closestEnemy; // 锁定目标敌人
+            } else {
+                // 没有敌人时，子弹向上发射
+                targetX = 0;
+                targetY = -1;
+            }
+            
+            bullets.push({
+                x: bulletX,
+                y: bulletY,
+                size: BULLET_SIZE,
+                direction: { x: targetX, y: targetY },
+                speed: BULLET_SPEED,
+                spawnTime: Date.now(), // 记录子弹发射时间
+                trackingTime: player.bulletTrackingTime, // 子弹追踪时间
+                targetEnemy: targetEnemy // 锁定的目标敌人
+            });
+        }
+        
+        // 生成心形道具
+        function spawnHeart(x, y) {
+            hearts.push({
+                x: x,
+                y: y,
+                size: HEART_SIZE,
+                collected: false
+            });
+        }
+        
+        // 检查碰撞
+        function checkCollision(a, b, sizeA, sizeB) {
+            return a.x < b.x + sizeB &&
+                   a.x + sizeA > b.x &&
+                   a.y < b.y + sizeB &&
+                   a.y + sizeA > b.y;
+        }
+        
+        // 更新玩家位置（带时间步长）
+        function updatePlayer(deltaTime) {
+            // 根据按键更新玩家方向
+            player.direction.x = 0;
+            player.direction.y = 0;
+            if (keys['ArrowRight'] || keys['d'] || keys['D']) player.direction.x = 1;
+            if (keys['ArrowLeft'] || keys['a'] || keys['A']) player.direction.x = -1;
+            if (keys['ArrowDown'] || keys['s'] || keys['S']) player.direction.y = 1;
+            if (keys['ArrowUp'] || keys['w'] || keys['W']) player.direction.y = -1;
+            
+            // 移动玩家（使用固定时间步长），应用速度升级
+            const speedMultiplier = player.speedMultiplier || 1;
+            const moveDistance = PLAYER_SPEED * speedMultiplier * (deltaTime / TIME_STEP);
+            player.x += player.direction.x * moveDistance;
+            player.y += player.direction.y * moveDistance;
+            
+            // 边界检测
+            if (player.x < 0) player.x = 0;
+            if (player.x + PLAYER_SIZE > canvas.width) player.x = canvas.width - PLAYER_SIZE;
+            if (player.y < 0) player.y = 0;
+            if (player.y + PLAYER_SIZE > canvas.height) player.y = canvas.height - PLAYER_SIZE;
+            
+            // 自动攻击，应用攻击速度升级
+            const attackSpeedMultiplier = player.attackSpeedMultiplier || 1;
+            const effectiveAttackCooldown = ATTACK_COOLDOWN * attackSpeedMultiplier;
+            const now = Date.now();
+            if (now - player.lastAttackTime > effectiveAttackCooldown) {
+                attack();
+                player.lastAttackTime = now;
+            }
+        }
+        
+        // 攻击逻辑 - 替换为发射子弹
+        function attack() {
+            const multiShotCount = player.multiShotCount || 0;
+            
+            // 如果没有多发射击升级，只发射一颗子弹
+            if (multiShotCount === 0) {
+                spawnBullet();
+                return;
+            }
+            
+            // 有了多发射击升级，发射多颗子弹
+            // 每次升级增加2颗额外子弹（均匀分布在圆形）
+            const totalBullets = 1 + multiShotCount * 2;
+            
+            // 发射圆形分布的子弹
+            for (let i = 0; i < totalBullets; i++) {
+                // 计算每个子弹的角度（均匀分布在360度）
+                const angle = (Math.PI * 2 * i) / totalBullets;
+                spawnBulletWithOffset(angle);
+            }
+        }
+        
+        // 带角度偏移发射子弹
+        function spawnBulletWithOffset(angleOffset) {
+            // 计算子弹初始位置（玩家中心）
+            const bulletX = player.x + PLAYER_SIZE / 2 - BULLET_SIZE / 2;
+            const bulletY = player.y + PLAYER_SIZE / 2 - BULLET_SIZE / 2;
+            
+            // 如果有敌人，子弹朝向最近的敌人
+            let targetX = 0, targetY = 0;
+            let targetEnemy = null;
+            
+            if (enemies.length > 0) {
+                // 找到最近的敌人
+                let closestEnemy = enemies[0];
+                let closestDistance = Infinity;
+                
+                for (let enemy of enemies) {
+                    const dx = player.x + PLAYER_SIZE/2 - (enemy.x + enemy.size/2);
+                    const dy = player.y + PLAYER_SIZE/2 - (enemy.y + enemy.size/2);
+                    const distance = Math.sqrt(dx*dx + dy*dy);
+                    
+                    if (distance < closestDistance) {
+                        closestDistance = distance;
+                        closestEnemy = enemy;
+                    }
+                }
+                
+                // 计算朝向最近敌人的方向
+                const dx = closestEnemy.x + closestEnemy.size/2 - (player.x + PLAYER_SIZE/2);
+                const dy = closestEnemy.y + closestEnemy.size/2 - (player.y + PLAYER_SIZE/2);
+                const distance = Math.sqrt(dx*dx + dy*dy);
+                
+                // 应用角度偏移
+                const originalAngle = Math.atan2(dy, dx);
+                const newAngle = originalAngle + angleOffset;
+                targetX = Math.cos(newAngle);
+                targetY = Math.sin(newAngle);
+                targetEnemy = closestEnemy; // 锁定目标敌人
+            } else {
+                // 没有敌人时，子弹向上发射，应用角度偏移
+                const originalAngle = -Math.PI / 2; // 向上
+                const newAngle = originalAngle + angleOffset;
+                targetX = Math.cos(newAngle);
+                targetY = Math.sin(newAngle);
+            }
+            
+            bullets.push({
+                x: bulletX,
+                y: bulletY,
+                size: BULLET_SIZE,
+                direction: { x: targetX, y: targetY },
+                speed: BULLET_SPEED,
+                spawnTime: Date.now(), // 记录子弹发射时间
+                trackingTime: player.bulletTrackingTime, // 子弹追踪时间
+                targetEnemy: targetEnemy // 锁定的目标敌人
+            });
+        }
+        
+        // 更新子弹（带时间步长）
+        function updateBullets(deltaTime) {
+            for (let i = bullets.length - 1; i >= 0; i--) {
+                const bullet = bullets[i];
+                
+                // 检查子弹是否在追踪时间内，并且有锁定的目标
+                const currentTime = Date.now();
+                const bulletAge = (currentTime - bullet.spawnTime) / 1000; // 转换为秒
+                
+                if (bullet.trackingTime > 0 && bulletAge < bullet.trackingTime && bullet.targetEnemy && enemies.includes(bullet.targetEnemy)) {
+                    // 计算子弹到目标敌人的新方向
+                    const dx = bullet.targetEnemy.x + bullet.targetEnemy.size/2 - (bullet.x + bullet.size/2);
+                    const dy = bullet.targetEnemy.y + bullet.targetEnemy.size/2 - (bullet.y + bullet.size/2);
+                    const distance = Math.sqrt(dx*dx + dy*dy);
+                    
+                    if (distance > 0) {
+                        // 平滑地改变子弹方向（追踪效果）
+                        const smoothFactor = 0.1; // 追踪的平滑因子，值越小转向越平滑
+                        bullet.direction.x = bullet.direction.x * (1 - smoothFactor) + (dx / distance) * smoothFactor;
+                        bullet.direction.y = bullet.direction.y * (1 - smoothFactor) + (dy / distance) * smoothFactor;
+                        
+                        // 归一化方向向量
+                        const dirLength = Math.sqrt(bullet.direction.x*bullet.direction.x + bullet.direction.y*bullet.direction.y);
+                        if (dirLength > 0) {
+                            bullet.direction.x /= dirLength;
+                            bullet.direction.y /= dirLength;
+                        }
+                    }
+                }
+                
+                // 移动子弹（使用固定时间步长），应用子弹速度升级
+                const bulletSpeedMultiplier = player.bulletSpeedMultiplier || 1;
+                const moveDistance = bullet.speed * bulletSpeedMultiplier * (deltaTime / TIME_STEP);
+                bullet.x += bullet.direction.x * moveDistance;
+                bullet.y += bullet.direction.y * moveDistance;
+                
+                // 检查子弹是否超出屏幕
+                if (bullet.x < -bullet.size || bullet.x > canvas.width ||
+                    bullet.y < -bullet.size || bullet.y > canvas.height) {
+                    bullets.splice(i, 1);
+                    continue;
+                }
+                
+                // 检查子弹与敌人的碰撞
+                const canPenetrate = player.upgrades && player.upgrades.includes(BUFF_TYPES.STRONGER_BULLETS);
+                let hitEnemyCount = 0;
+                
+                for (let j = enemies.length - 1; j >= 0; j--) {
+                    const enemy = enemies[j];
+                    if (checkCollision(bullet, enemy, bullet.size, enemy.size)) {
+                        // 触发敌人受击闪烁
+                        enemy.isHit = true;
+                        enemy.hitTimer = 3; // 闪烁3帧
+                        
+                        // 计算子弹伤害（应用伤害倍率）
+                        const bulletDamageMultiplier = player.bulletDamageMultiplier || 1;
+                        const bulletDamage = 1 * bulletDamageMultiplier; // 默认每颗子弹造成1点伤害
+                        
+                        // 减少敌人血量
+                        enemy.health -= bulletDamage;
+                        
+                        // 检查敌人是否被击败
+                        if (enemy.health <= 0) {
+                            // 移除敌人
+                            enemies.splice(j, 1);
+                            
+                            // 计算分数（应用MORE_ENEMIES升级带来的双倍分数）
+                            const baseScore = 1; // 一个敌人一分
+                            const scoreMultiplier = player.upgrades && player.upgrades.includes(BUFF_TYPES.MORE_ENEMIES) ? 2 : 1;
+                            score += baseScore * scoreMultiplier;
+                            updateScore();
+                            
+                            // 随机生成心形道具，应用BETTER_LOOT升级
+                            const baseDropChance = HEART_SPAWN_CHANCE;
+                            const lootChanceMultiplier = player.lootChanceMultiplier || 1;
+                            const dropChance = baseDropChance * lootChanceMultiplier;
+                            if (Math.random() < dropChance) {
+                                spawnHeart(enemy.x + enemy.size/2 - HEART_SIZE/2, 
+                                           enemy.y + enemy.size/2 - HEART_SIZE/2);
+                            }
+                            
+                            // 极低概率掉落宝箱
+                            if (Math.random() < CHEST_DROP_CHANCE) {
+                                spawnChest(enemy.x + enemy.size/2 - CHEST_SIZE/2, 
+                                           enemy.y + enemy.size/2 - CHEST_SIZE/2);
+                            }
+                            
+                            // 有一定概率生成新敌人
+                            if (Math.random() < 0.7) {
+                                spawnEnemy();
+                            }
+                        }
+                        
+                        hitEnemyCount++;
+                        
+                        // 如果子弹不能穿透，只击中一个敌人后就停止
+                        if (!canPenetrate) {
+                            break;
+                        }
+                    }
+                }
+                
+                // 如果子弹击中敌人，且不能穿透，移除子弹
+                if (hitEnemyCount > 0 && !canPenetrate) {
+                    bullets.splice(i, 1);
+                }
+            }
+        }
+        
+        // 更新心形道具
+        function updateHearts() {
+            for (let i = hearts.length - 1; i >= 0; i--) {
+                const heart = hearts[i];
+                
+                // 检查心形道具与玩家的碰撞
+                if (checkCollision(player, heart, PLAYER_SIZE, heart.size)) {
+                    // 恢复血量（恢复30点血）
+                    const healthRestoreAmount = 30;
+                    player.health = Math.min(player.health + healthRestoreAmount, player.maxHealth);
+                    updateLivesDisplay();
+                    
+                    // 移除心形道具
+                    hearts.splice(i, 1);
+                }
+            }
+        }
+        
+        // 生成宝箱
+        function spawnChest(x, y) {
+            chests.push({
+                x: x,
+                y: y,
+                size: CHEST_SIZE,
+                collected: false,
+                animationFrame: 0
+            });
+        }
+        
+        // 更新宝箱
+        function updateChests() {
+            for (let i = chests.length - 1; i >= 0; i--) {
+                const chest = chests[i];
+                
+                // 宝箱动画
+                chest.animationFrame = (chest.animationFrame + 1) % 30;
+                
+                // 检查宝箱与玩家的碰撞
+                if (checkCollision(player, chest, PLAYER_SIZE, chest.size)) {
+                    // 给予免费升级机会
+                    player.hasFreeUpgrade = true;
+                    
+                    // 移除宝箱
+                    chests.splice(i, 1);
+                    
+                    // 显示免费升级提示
+                    showUpgradeScreen();
+                }
+            }
+        }
+        
+        // 绘制宝箱
+        function drawChests() {
+            for (let chest of chests) {
+                ctx.fillStyle = '#ffffff';
+                const bounceOffset = Math.sin(chest.animationFrame * 0.2) * 2;
+                
+                // 绘制宝箱主体
+                ctx.fillRect(chest.x, chest.y + bounceOffset, chest.size, chest.size * 0.7);
+                
+                // 绘制宝箱盖子
+                ctx.fillRect(chest.x + 2, chest.y - 3 + bounceOffset, chest.size - 4, 6);
+                
+                // 绘制宝箱锁
+                ctx.fillStyle = '#666';
+                ctx.beginPath();
+                ctx.arc(chest.x + chest.size / 2, chest.y + 5 + bounceOffset, 3, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+        
+        // 绘制商人
+        function drawMerchant() {
+            if (!isMerchantVisible || player.currentRoomIndex !== REST_ROOM_INDEX) {
+                return;
+            }
+            
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            
+            // 绘制商人
+            ctx.fillStyle = '#ffffff';
+            
+            // 商人身体
+            ctx.fillRect(centerX - MERCHANT_SIZE / 2, centerY - MERCHANT_SIZE / 3, MERCHANT_SIZE, MERCHANT_SIZE * 2/3);
+            
+            // 商人头部
+            ctx.beginPath();
+            ctx.arc(centerX, centerY - MERCHANT_SIZE / 2, MERCHANT_SIZE / 3, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // 商人眼睛
+            ctx.fillStyle = '#000';
+            ctx.beginPath();
+            ctx.arc(centerX - 6, centerY - MERCHANT_SIZE / 2 - 2, 3, 0, Math.PI * 2);
+            ctx.arc(centerX + 6, centerY - MERCHANT_SIZE / 2 - 2, 3, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // 商人嘴巴（微笑）
+            ctx.beginPath();
+            ctx.arc(centerX, centerY - MERCHANT_SIZE / 2 + 6, 8, 0, Math.PI);
+            ctx.stroke();
+            
+            // 绘制交互提示
+            const playerDistance = Math.sqrt(
+                Math.pow(player.x + PLAYER_SIZE/2 - centerX, 2) + 
+                Math.pow(player.y + PLAYER_SIZE/2 - centerY, 2)
+            );
+            
+            if (playerDistance <= merchantInteractionRadius) {
+                ctx.fillStyle = '#000000'; // 改为黑色文字
+                ctx.font = '12px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('按F键进行升级 (需求: ' + Math.floor(player.nextUpgradeScore - score) + '分)', centerX, centerY - MERCHANT_SIZE);
+                
+                // 显示商人对话框
+                ctx.strokeStyle = '#ffffff';
+                ctx.strokeRect(centerX - 100, centerY - MERCHANT_SIZE - 30, 200, 25);
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.9)'; // 改为白色背景
+                ctx.fillRect(centerX - 100, centerY - MERCHANT_SIZE - 30, 200, 25);
+                ctx.fillStyle = '#000000'; // 改为黑色文字
+                ctx.font = '10px Arial';
+                ctx.fillText('需要更多力量吗，冒险者？按F键与我交易！', centerX, centerY - MERCHANT_SIZE - 15);
+            }
+        }
+        
+        // 检查商人交互
+        function checkMerchantInteraction() {
+            if (!isMerchantVisible || player.currentRoomIndex !== REST_ROOM_INDEX) {
+                return;
+            }
+            
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            
+            const playerDistance = Math.sqrt(
+                Math.pow(player.x + PLAYER_SIZE/2 - centerX, 2) + 
+                Math.pow(player.y + PLAYER_SIZE/2 - centerY, 2)
+            );
+            
+            // 检查玩家是否在商人交互范围内并且按下了F键
+            if (playerDistance <= merchantInteractionRadius && keys['F']) {
+                // 如果有免费升级机会，直接显示升级界面
+                if (player.hasFreeUpgrade) {
+                    player.hasFreeUpgrade = false;
+                    showUpgradeScreen();
+                } 
+                // 否则检查是否有足够的分数进行升级
+                else if (score >= player.nextUpgradeScore) {
+                    showUpgradeScreen();
+                }
+            }
+        }
+        
+        // 更新敌人受击效果
+        function updateEnemyHitEffects() {
+            for (let enemy of enemies) {
+                if (enemy.isHit) {
+                    enemy.hitTimer--;
+                    if (enemy.hitTimer <= 0) {
+                        enemy.isHit = false;
+                    }
+                }
+            }
+        }
+        
+        // 更新生命值显示 - 显示血条
+        function updateLivesDisplay() {
+            // 清空现有内容
+            livesDisplay.innerHTML = '';
+            
+            // 添加生命值标签
+            const healthLabel = document.createElement('span');
+            healthLabel.textContent = '生命值: ';
+            healthLabel.style.marginRight = '5px';
+            healthLabel.style.fontWeight = 'bold';
+            livesDisplay.appendChild(healthLabel);
+            
+            // 创建血条容器
+            const healthBarContainer = document.createElement('div');
+            healthBarContainer.style.width = '150px';
+            healthBarContainer.style.height = '20px';
+            healthBarContainer.style.border = '2px solid #000';
+            healthBarContainer.style.borderRadius = '4px';
+            healthBarContainer.style.overflow = 'hidden';
+            healthBarContainer.style.backgroundColor = '#ddd';
+            livesDisplay.appendChild(healthBarContainer);
+            
+            // 创建血条填充部分
+            const healthBar = document.createElement('div');
+            const healthPercentage = Math.max(0, Math.min(100, (player.health / player.maxHealth) * 100));
+            
+            // 黑白风格 - 根据血量设置灰度颜色
+            const grayIntensity = Math.floor(healthPercentage * 200);
+            const healthColor = `rgb(${grayIntensity}, ${grayIntensity}, ${grayIntensity})`;
+            
+            healthBar.style.width = healthPercentage + '%';
+            healthBar.style.height = '100%';
+            healthBar.style.backgroundColor = healthColor;
+            healthBar.style.transition = 'width 0.3s ease, background-color 0.3s ease';
+            healthBar.style.position = 'relative';
+            healthBarContainer.appendChild(healthBar);
+            
+            // 添加血量文字
+            const healthText = document.createElement('span');
+            healthText.textContent = Math.floor(player.health) + '/' + player.maxHealth;
+            healthText.style.position = 'absolute';
+            healthText.style.top = '50%';
+            healthText.style.left = '50%';
+            healthText.style.transform = 'translate(-50%, -50%)';
+            healthText.style.fontSize = '12px';
+            healthText.style.fontWeight = 'bold';
+            healthText.style.color = healthPercentage > 30 ? '#000' : '#fff';
+            healthBarContainer.appendChild(healthText);
+        }
+        
+        // 更新敌人（带时间步长）
+        function updateEnemies(deltaTime) {
+            for (let enemy of enemies) {
+                // 增加运动进度
+                enemy.movementProgress += deltaTime * 0.001;
+                
+                let moveX = 0, moveY = 0;
+                
+                // 根据敌人类型使用不同的运动轨迹
+                switch (enemy.type) {
+                    case ENEMY_TYPES.CIRCLE:
+                    case ENEMY_TYPES.SQUARE:
+                    case ENEMY_TYPES.TRIANGLE:
+                        // 追踪玩家的基本移动
+                        const dx = player.x + PLAYER_SIZE/2 - (enemy.x + enemy.size/2);
+                        const dy = player.y + PLAYER_SIZE/2 - (enemy.y + enemy.size/2);
+                        const distance = Math.sqrt(dx*dx + dy*dy);
+                        
+                        if (distance > 0) {
+                            const moveDistance = enemy.speed * (deltaTime / TIME_STEP);
+                            moveX = (dx / distance) * moveDistance;
+                            moveY = (dy / distance) * moveDistance;
+                        }
+                        break;
+                    
+                    case ENEMY_TYPES.ZIGZAG:
+                        // 锯齿形移动（追踪玩家的同时左右摆动）
+                        const zigzagDx = player.x + PLAYER_SIZE/2 - (enemy.x + enemy.size/2);
+                        const zigzagDy = player.y + PLAYER_SIZE/2 - (enemy.y + enemy.size/2);
+                        const zigzagDistance = Math.sqrt(zigzagDx*zigzagDx + zigzagDy*zigzagDy);
+                        
+                        if (zigzagDistance > 0) {
+                            // 基础追踪移动
+                            const baseMoveDistance = enemy.speed * (deltaTime / TIME_STEP);
+                            const baseMoveX = (zigzagDx / zigzagDistance) * baseMoveDistance;
+                            const baseMoveY = (zigzagDy / zigzagDistance) * baseMoveDistance;
+                            
+                            // 计算垂直于追踪方向的摆动
+                            const perpendicularX = -baseMoveY;
+                            const perpendicularY = baseMoveX;
+                            const perpendicularLength = Math.sqrt(perpendicularX*perpendicularX + perpendicularY*perpendicularY);
+                            
+                            if (perpendicularLength > 0) {
+                                const wiggleIntensity = enemy.amplitude * Math.sin(enemy.movementProgress * enemy.frequency);
+                                moveX = baseMoveX + (perpendicularX / perpendicularLength) * wiggleIntensity;
+                                moveY = baseMoveY + (perpendicularY / perpendicularLength) * wiggleIntensity;
+                            } else {
+                                moveX = baseMoveX;
+                                moveY = baseMoveY;
+                            }
+                        }
+                        break;
+                    
+                    case ENEMY_TYPES.SPIRAL:
+                        // 螺旋形移动
+                        enemy.rotationAngle += deltaTime * 0.002 * enemy.speed;
+                        const spiralRadius = Math.min(canvas.width, canvas.height) * 0.4;
+                        const spiralCenterX = player.x + PLAYER_SIZE/2;
+                        const spiralCenterY = player.y + PLAYER_SIZE/2;
+                        
+                        // 计算螺旋轨迹上的点
+                        const t = enemy.movementProgress * 0.5;
+                        const spiralX = spiralCenterX + spiralRadius * t * Math.cos(enemy.rotationAngle + t);
+                        const spiralY = spiralCenterY + spiralRadius * t * Math.sin(enemy.rotationAngle + t);
+                        
+                        // 向螺旋轨迹上的点移动
+                        const spiralDx = spiralX - (enemy.x + enemy.size/2);
+                        const spiralDy = spiralY - (enemy.y + enemy.size/2);
+                        const spiralDistance = Math.sqrt(spiralDx*spiralDx + spiralDy*spiralDy);
+                        
+                        if (spiralDistance > 0) {
+                            const moveDistance = enemy.speed * (deltaTime / TIME_STEP);
+                            moveX = (spiralDx / spiralDistance) * moveDistance;
+                            moveY = (spiralDy / spiralDistance) * moveDistance;
+                        }
+                        break;
+                }
+                
+                // 应用移动
+                enemy.x += moveX;
+                enemy.y += moveY;
+                
+                // 检查敌人与玩家的碰撞
+                if (checkCollision(player, enemy, PLAYER_SIZE, enemy.size)) {
+                    // 如果玩家不是无敌状态
+                    if (!player.isInvulnerable) {
+                        // 扣除敌人剩余血量作为伤害
+                        const damageAmount = enemy.health;
+                        
+                        // 减少玩家血量
+                        player.health -= damageAmount;
+                        if (player.health < 0) player.health = 0;
+                        updateLivesDisplay();
+                            
+                        // 设置玩家无敌状态和闪烁效果
+                        player.isInvulnerable = true;
+                        const invulnerabilityMultiplier = player.invulnerabilityTimeMultiplier || 1;
+                        player.invulnerabilityTimer = INVULNERABILITY_TIME * invulnerabilityMultiplier;
+                        player.flashTimer = 0;
+                            
+                        // 检查游戏是否结束
+                        if (player.health <= 0) {
+                            endGame();
+                            return;
+                        }
+                    }
+                       
+                    // 玩家获得消灭此敌人的分数
+                    const scoreMultiplier = player.upgrades && player.upgrades.includes(BUFF_TYPES.MORE_ENEMIES) ? 2 : 1;
+                    score += 1 * scoreMultiplier;
+                    updateScore();
+                       
+                    // 生成心形道具（有一定概率）
+                    const baseDropChance = 0.1;
+                    const lootChanceMultiplier = player.lootChanceMultiplier || 1;
+                    const dropChance = baseDropChance * lootChanceMultiplier;
+                    if (Math.random() < dropChance) {
+                        spawnHeart(enemy.x + enemy.size/2 - HEART_SIZE/2, 
+                                enemy.y + enemy.size/2 - HEART_SIZE/2);
+                    }
+                       
+                    // 有一定概率生成新敌人（不在休息房间时）
+                    if (Math.random() < 0.7 && player.currentRoomIndex !== REST_ROOM_INDEX) {
+                        spawnEnemy();
+                    }
+                       
+                    // 移除与玩家碰撞的敌人
+                    const index = enemies.indexOf(enemy);
+                    if (index !== -1) {
+                        enemies.splice(index, 1);
+                    }
+                }
+            }
+            
+            // 定期生成新敌人（不在休息房间时）
+            const now = Date.now();
+            if (now - lastEnemySpawn > ENEMY_SPAWN_INTERVAL && player.currentRoomIndex !== REST_ROOM_INDEX) {
+                spawnEnemy();
+                lastEnemySpawn = now;
+            }
+        }
+        
+        // 更新分数显示
+        function updateScore() {
+            scoreDisplay.textContent = `得分: ${score}`;
+        }
+        
+        // 绘制玩家
+        function drawPlayer() {
+            // 如果玩家处于无敌状态，实现闪烁效果
+            if (player.isInvulnerable) {
+                // 闪烁频率约为每秒10次
+                const shouldDraw = Math.floor(player.flashTimer / 100) % 2 === 0;
+                if (!shouldDraw) {
+                    return; // 不绘制玩家以实现闪烁
+                }
+                // 设置半透明颜色
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.7)'; // 半透明黑色
+            } else {
+                ctx.fillStyle = '#000'; // 正常黑色
+            }
+            
+            // 绘制玩家自定义的5x5模式
+            for (let i = 0; i < GRID_SIZE * GRID_SIZE; i++) {
+                if (player.characterPattern[i]) {
+                    const row = Math.floor(i / GRID_SIZE);
+                    const col = i % GRID_SIZE;
+                    const x = player.x + col * CELL_SIZE;
+                    const y = player.y + row * CELL_SIZE;
+                    ctx.fillRect(x, y, CELL_SIZE, CELL_SIZE);
+                }
+            }
+        }
+        
+        function drawEnemies() {
+            for (let i = 0; i < enemies.length; i++) {
+                const enemy = enemies[i];
+                
+                const healthPercentage = enemy.health / enemy.maxHealth;
+                const grayValue = Math.floor(200 - healthPercentage * 150);
+                
+                const enemyColor = enemy.isHit ? '#ffffff' : `rgb(${grayValue}, ${grayValue}, ${grayValue})`;
+                
+                ctx.fillStyle = enemyColor;
+                ctx.strokeStyle = '#000000';
+                ctx.lineWidth = 1;
+                
+                switch (enemy.type) {
+                    case ENEMY_TYPES.CIRCLE:
+                        ctx.beginPath();
+                        ctx.arc(enemy.x + enemy.size/2, enemy.y + enemy.size/2, enemy.size/2, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.stroke();
+                        break;
+                          
+                    case ENEMY_TYPES.SQUARE:
+                        ctx.fillRect(enemy.x, enemy.y, enemy.size, enemy.size);
+                        ctx.strokeRect(enemy.x, enemy.y, enemy.size, enemy.size);
+                        break;
+                          
+                    case ENEMY_TYPES.TRIANGLE:
+                        ctx.beginPath();
+                        ctx.moveTo(enemy.x + enemy.size/2, enemy.y);
+                        ctx.lineTo(enemy.x, enemy.y + enemy.size);
+                        ctx.lineTo(enemy.x + enemy.size, enemy.y + enemy.size);
+                        ctx.closePath();
+                        ctx.fill();
+                        ctx.stroke();
+                        break;
+                          
+                    case ENEMY_TYPES.ZIGZAG:
+                        const hexagonSize = enemy.size / 2;
+                        const hexagonX = enemy.x + hexagonSize;
+                        const hexagonY = enemy.y + hexagonSize;
+                        ctx.beginPath();
+                        for (let j = 0; j < 6; j++) {
+                            const angle = (Math.PI / 3) * j;
+                            const x = hexagonX + hexagonSize * Math.cos(angle);
+                            const y = hexagonY + hexagonSize * Math.sin(angle);
+                            if (j === 0) {
+                                ctx.moveTo(x, y);
+                            } else {
+                                ctx.lineTo(x, y);
+                            }
+                        }
+                        ctx.closePath();
+                        ctx.fill();
+                        ctx.stroke();
+                        break;
+                          
+                    case ENEMY_TYPES.SPIRAL:
+                        const octagonSize = enemy.size / 2;
+                        const octagonX = enemy.x + octagonSize;
+                        const octagonY = enemy.y + octagonSize;
+                        ctx.beginPath();
+                        for (let j = 0; j < 8; j++) {
+                            const angle = (Math.PI / 4) * j;
+                            const x = octagonX + octagonSize * Math.cos(angle);
+                            const y = octagonY + octagonSize * Math.sin(angle);
+                            if (j === 0) {
+                                ctx.moveTo(x, y);
+                            } else {
+                                ctx.lineTo(x, y);
+                            }
+                        }
+                        ctx.closePath();
+                        ctx.fill();
+                        ctx.stroke();
+                        break;
+                }
+                
+                const healthBarWidth = enemy.size;
+                const healthBarHeight = 4;
+                const healthBarOffsetY = -8;
+                
+                ctx.fillStyle = '#333';
+                ctx.fillRect(enemy.x, enemy.y + healthBarOffsetY, healthBarWidth, healthBarHeight);
+                
+                const healthPercentageWidth = healthPercentage * healthBarWidth;
+                const healthBarGrayValue = Math.floor(healthPercentage * 255);
+                ctx.fillStyle = `rgb(${healthBarGrayValue}, ${healthBarGrayValue}, ${healthBarGrayValue})`;
+                ctx.fillRect(enemy.x, enemy.y + healthBarOffsetY, healthPercentageWidth, healthBarHeight);
+                
+                if (enemy.hitTimer > 0) {
+                    enemy.hitTimer--;
+                } else {
+                    enemy.isHit = false;
+                }
+            }
+        }
+        
+        function drawBullets() {
+            ctx.fillStyle = '#000';
+            for (let bullet of bullets) {
+                ctx.fillRect(bullet.x, bullet.y, bullet.size, bullet.size);
+            }
+        }
+        
+        function drawHearts() {
+            ctx.fillStyle = '#ffffff';
+            for (let heart of hearts) {
+                const centerX = heart.x + heart.size/2;
+                const centerY = heart.y + heart.size/2;
+                const size = heart.size/3;
+                
+                ctx.beginPath();
+                ctx.moveTo(centerX, centerY - size);
+                ctx.bezierCurveTo(
+                    centerX + size*2, centerY - size*2,
+                    centerX + size*2, centerY + size,
+                    centerX, centerY + size/2
+                );
+                ctx.bezierCurveTo(
+                    centerX - size*2, centerY + size,
+                    centerX - size*2, centerY - size*2,
+                    centerX, centerY - size
+                );
+                ctx.fill();
+            }
+        }
+        
+        const TIME_STEP = 16;
+        const TARGET_FPS = 60;
+        const TARGET_FRAME_TIME = 1000 / TARGET_FPS;
+        let lastTime = 0;
+        let nextFrameTime = 0;
+        
+        function gameLoop(timestamp) {
+            if (!lastTime) {
+                lastTime = timestamp;
+                nextFrameTime = timestamp;
+            }
+             
+            const deltaTime = timestamp - lastTime;
+             
+            if (player.isInvulnerable) {
+                player.invulnerabilityTimer -= deltaTime;
+                player.flashTimer += deltaTime;
+                 
+                if (player.invulnerabilityTimer <= 0) {
+                    player.isInvulnerable = false;
+                    player.invulnerabilityTimer = 0;
+                    player.flashTimer = 0;
+                }
+            }
+             
+            if (!isGamePaused && !isGameOver) {
+                    checkForUpgrade();
+                    checkMerchantInteraction();
+                }
+                
+                if (timestamp >= nextFrameTime) {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    
+                    if (!isGamePaused && !isGameOver) {
+                        updatePlayer(TIME_STEP);
+                        checkRoomBoundary();
+                        updateEnemies(TIME_STEP);
+                        updateEnemyHitEffects();
+                        updateBullets(TIME_STEP);
+                        updateHearts();
+                        updateChests();
+                    }
+                    
+                    drawPlayer();
+                    drawEnemies();
+                    drawBullets();
+                    drawHearts();
+                    drawChests();
+                    drawMerchant();
+                
+                ctx.fillStyle = '#fff';
+                ctx.font = '14px Arial';
+                const currentRoom = rooms[player.currentRoomIndex];
+                let roomType = '普通房间';
+                if (currentRoom.index === REST_ROOM_INDEX) roomType = '休息房间';
+                else if (currentRoom.index === FINAL_ROOM_INDEX) roomType = '最终房间';
+                ctx.fillText(`房间: ${roomType}`, 10, 20);
+                
+                // 绘制六芒星法阵
+                drawPortals();
+                 
+                lastTime = timestamp;
+                 
+                nextFrameTime = timestamp + TARGET_FRAME_TIME;
+            }
+             
+            if (!isGameOver) {
+                gameLoopId = requestAnimationFrame(gameLoop);
+            }
+        }
+        
+        function startGame() {
+            editorContainer.style.display = 'none';
+            gameContainer.classList.add('show');
+              
+            isGameOver = false;
+            isGamePaused = false;
+            
+            initGame();
+            gameLoop();
+        }
+        
+        function endGame() {
+            isGameOver = true;
+            cancelAnimationFrame(gameLoopId);
+              
+            player.lives = 3;
+              
+            gameContainer.classList.remove('show');
+            startPage.style.display = 'flex';
+            
+            createCatBackground();
+        }
+        
+        function createCatBackground() {
+            catBackground.innerHTML = '';
+            
+            const catCount = Math.floor(Math.random() * 6) + 10;
+            
+            for (let i = 0; i < catCount; i++) {
+                const cat = document.createElement('div');
+                cat.classList.add('blackCat');
+                
+                const startX = Math.random() * 100;
+                const startY = Math.random() * 100;
+                cat.style.left = `${startX}%`;
+                cat.style.top = `${startY}%`;
+                
+                const duration = Math.random() * 10 + 10;
+                const delay = Math.random() * 5;
+                cat.style.animation = `catMove ${duration}s linear ${delay}s infinite`;
+                
+                const direction = Math.floor(Math.random() * 8);
+                switch (direction) {
+                    case 0:
+                        cat.style.transformOrigin = 'left center';
+                        break;
+                    case 1:
+                        cat.style.transformOrigin = 'right bottom';
+                        break;
+                    case 2:
+                        cat.style.transformOrigin = 'center bottom';
+                        break;
+                    case 3:
+                        cat.style.transformOrigin = 'left bottom';
+                        break;
+                    case 4:
+                        cat.style.transformOrigin = 'right center';
+                        break;
+                    case 5:
+                        cat.style.transformOrigin = 'right top';
+                        break;
+                    case 6:
+                        cat.style.transformOrigin = 'center top';
+                        break;
+                    case 7:
+                        cat.style.transformOrigin = 'left top';
+                        break;
+                }
+                
+                catBackground.appendChild(cat);
+            }
+        }
+        function showEditor() {
+            startPage.style.display = 'none';
+            editorContainer.style.display = 'flex';
+            gameContainer.classList.remove('show');
+            initEditor();
+        }
+        startGameBtn.addEventListener('click', startGame);
+        startPageButton.addEventListener('click', showEditor);
+        window.addEventListener('keydown', (e) => {
+            keys[e.key] = true;
+        });
+        
+        window.addEventListener('keyup', (e) => {
+            keys[e.key] = false;
+        });
+        createCatBackground();
+    </script>
+</body>
+</html>
