@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>black catsoul</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #fff;
+            color: #000;
+            font-family: Arial, sans-serif;
+        }
+        
+        /* 首页样式 */
+        .startPage {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #fff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        
+        .gameTitle {
+            font-size: 48px;
+            margin-bottom: 40px;
+            color: #000;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        
+        .startPageButton {
+            padding: 15px 30px;
+            font-size: 24px;
+            background-color: #000;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .startPageButton:hover {
+            background-color: #333;
+            transform: scale(1.05);
+        }
+        
+        /* 黑猫背景动画 */
+        .catBackground {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 100;
+            pointer-events: none;
+        }
+        
+        .blackCat {
+            position: absolute;
+            width: 20px;
+            height: 15px;
+            background-color: #000;
+            border-radius: 3px;
+            animation: catMove 20s linear infinite;
+        }
+        
+        .blackCat::before {
+            content: '';
+            position: absolute;
+            top: -5px;
+            left: 3px;
+            width: 8px;
+            height: 8px;
+            background-color: #000;
+            border-radius: 50%;
+        }
+        
+        .blackCat::after {
+            content: '';
+            position: absolute;
+            bottom: -5px;
+            left: 3px;
+            width: 12px;
+            height: 10px;
+            background-color: #000;
+            border-radius: 50%;
+        }
+        
+        @keyframes catMove {
+            0% { transform: translate(0, 0); }
+            100% { transform: translate(0, 0); }
+        }
+        
+        /* 角色编辑器样式 */
+        .editorContainer {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #fff;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 900;
+        }
+        
+        .characterEditor {
+            display: grid;
+            grid-template-columns: repeat(5, 30px);
+            grid-template-rows: repeat(5, 30px);
+            gap: 2px;
+            margin-bottom: 30px;
+        }
+        
+        .editorCell {
+            width: 30px;
+            height: 30px;
+            background-color: #ddd;
+            border: 1px solid #999;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        .editorCell.active {
+            background-color: #000;
+        }
+        
+        .editorTitle {
+            font-size: 32px;
+            margin-bottom: 30px;
+            color: #000;
+        }
+        
+        .editorControls {
+            display: flex;
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        .editorButton {
+            padding: 10px 20px;
+            font-size: 18px;
+            background-color: #000;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .editorButton:hover {
+            background-color: #333;
+            transform: scale(1.05);
+        }
+        
+        /* 游戏容器 */
+        .gameContainer {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: none;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+        }
+        
+        .gameContainer.show {
+            display: block;
+            opacity: 1;
+        }
+        
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            background-color: #000;
+        }
+    </style>
+</head>
+<body>
+    <!-- 首页 -->
+    <div class="startPage">
+        <h1 class="gameTitle">black catsoul</h1>
+        <button class="startPageButton">开始游戏</button>
+        <div class="catBackground"></div>
+    </div>
+    
+    <!-- 角色编辑器 -->
+    <div class="editorContainer">
+        <h2 class="editorTitle">创建你的角色</h2>
+        <div class="characterEditor"></div>
+        <div class="editorControls">
+            <button class="editorButton" id="startGameBtn">开始游戏</button>
+        </div>
+    </div>
+    
+    <!-- 游戏容器 -->
+    <div class="gameContainer">
+        <canvas id="gameCanvas"></canvas>
+    </div>
+    
+    <script>
+        // 获取DOM元素
+        const startPage = document.querySelector('.startPage');
+        const startPageButton = document.querySelector('.startPageButton');
+        const editorContainer = document.querySelector('.editorContainer');
+        const characterEditor = document.querySelector('.characterEditor');
+        const startGameBtn = document.getElementById('startGameBtn');
+        const gameContainer = document.querySelector('.gameContainer');
+        const canvas = document.getElementById('gameCanvas');
+        const catBackground = document.querySelector('.catBackground');
+        
+        // 设置canvas尺寸
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        const ctx = canvas.getContext('2d');
+        
+        // 常量定义
+        const GRID_SIZE = 5;
+        const CELL_SIZE = 50;
+        const PLAYER_SIZE = GRID_SIZE * CELL_SIZE;
+        
+        // 玩家对象
+        const player = {
+            x: 0,
+            y: 0,
+            characterPattern: Array(GRID_SIZE * GRID_SIZE).fill(false)
+        };
+        
+        // 初始化编辑器
+        function initEditor() {
+            characterEditor.innerHTML = '';
+            
+            // 默认角色图案
+            const defaultPattern = [
+                false, false, true, false, false,
+                false, true, true, true, false,
+                true, true, true, true, true,
+                false, true, false, true, false,
+                false, true, false, true, false
+            ];
+            player.characterPattern = [...defaultPattern];
+            
+            // 创建网格单元格
+            for (let i = 0; i < GRID_SIZE * GRID_SIZE; i++) {
+                const cell = document.createElement('div');
+                cell.classList.add('editorCell');
+                cell.dataset.index = i;
+                
+                // 设置初始状态
+                if (player.characterPattern[i]) {
+                    cell.classList.add('active');
+                }
+                
+                // 添加点击事件
+                cell.addEventListener('click', () => {
+                    const index = parseInt(cell.dataset.index);
+                    player.characterPattern[index] = !player.characterPattern[index];
+                    cell.classList.toggle('active', player.characterPattern[index]);
+                });
+                
+                characterEditor.appendChild(cell);
+            }
+        }
+        
+        // 创建黑猫背景
+        function createCatBackground() {
+            catBackground.innerHTML = '';
+            
+            const catCount = Math.floor(Math.random() * 6) + 10;
+            
+            for (let i = 0; i < catCount; i++) {
+                const cat = document.createElement('div');
+                cat.classList.add('blackCat');
+                
+                // 随机初始位置
+                const startX = Math.random() * 100;
+                const startY = Math.random() * 100;
+                cat.style.left = `${startX}%`;
+                cat.style.top = `${startY}%`;
+                
+                // 移除CSS动画设置
+                cat.style.animation = 'none';
+                
+                // 添加到背景容器
+                catBackground.appendChild(cat);
+                
+                // 为每只猫添加随机运动
+                animateCat(cat);
+            }
+        }
+        
+        // 为小猫添加随机运动
+        function animateCat(cat) {
+            let posX = parseFloat(cat.style.left);
+            let posY = parseFloat(cat.style.top);
+            
+            // 随机速度和方向
+            let speedX = (Math.random() - 0.5) * 2; // -1 到 1
+            let speedY = (Math.random() - 0.5) * 2; // -1 到 1
+            
+            function move() {
+                // 更新位置
+                posX += speedX;
+                posY += speedY;
+                
+                // 边界检查并反弹
+                if (posX < 0 || posX > 100) speedX = -speedX;
+                if (posY < 0 || posY > 100) speedY = -speedY;
+                
+                // 随机改变方向
+                if (Math.random() < 0.01) { // 1%概率改变水平方向
+                    speedX = (Math.random() - 0.5) * 2;
+                }
+                if (Math.random() < 0.01) { // 1%概率改变垂直方向
+                    speedY = (Math.random() - 0.5) * 2;
+                }
+                
+                // 应用新位置
+                cat.style.left = `${posX}%`;
+                cat.style.top = `${posY}%`;
+                
+                // 继续动画
+                if (cat.parentElement) { // 检查元素是否仍在DOM中
+                    requestAnimationFrame(move);
+                }
+            }
+            
+            // 开始动画
+            move();
+        }
+        
+        // 显示编辑器
+        function showEditor() {
+            startPage.style.display = 'none';
+            editorContainer.style.display = 'flex';
+            gameContainer.classList.remove('show');
+            initEditor();
+        }
+        
+        // 开始游戏（简化版，仅演示角色显示）
+        function startGame() {
+            editorContainer.style.display = 'none';
+            gameContainer.classList.add('show');
+            
+            // 简单绘制玩家角色
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#000';
+            
+            const centerX = canvas.width / 2 - PLAYER_SIZE / 2;
+            const centerY = canvas.height / 2 - PLAYER_SIZE / 2;
+            
+            // 绘制玩家自定义的5x5模式
+            for (let i = 0; i < GRID_SIZE * GRID_SIZE; i++) {
+                if (player.characterPattern[i]) {
+                    const row = Math.floor(i / GRID_SIZE);
+                    const col = i % GRID_SIZE;
+                    const x = centerX + col * CELL_SIZE;
+                    const y = centerY + row * CELL_SIZE;
+                    ctx.fillRect(x, y, CELL_SIZE, CELL_SIZE);
+                }
+            }
+            
+            // 添加返回首页按钮
+            ctx.font = '20px Arial';
+            ctx.fillText('按ESC返回首页', 10, 30);
+        }
+        
+        // 事件监听器
+        startPageButton.addEventListener('click', showEditor);
+        startGameBtn.addEventListener('click', startGame);
+        
+        // 键盘事件
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && gameContainer.classList.contains('show')) {
+                gameContainer.classList.remove('show');
+                startPage.style.display = 'flex';
+                createCatBackground();
+            }
+        });
+        
+        // 窗口大小调整
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            
+            // 如果正在游戏中，重新绘制角色
+            if (gameContainer.classList.contains('show')) {
+                startGame();
+            }
+        });
+        
+        // 初始化黑猫背景
+        createCatBackground();
+    </script>
+</body>
+</html>
