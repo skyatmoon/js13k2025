@@ -667,7 +667,8 @@
                 }
                 
                 // 移动敌人（动态速度）
-                const speed = (30 - e.radius) * 0.1 + 0.5;
+                const speedFactor = Math.max(0, 30 - e.radius);
+                const speed = Math.max(1, Math.sqrt(speedFactor) * 0.8 + 1);
                 e.x += e.directionX * speed;
                 e.y += e.directionY * speed;
                 
