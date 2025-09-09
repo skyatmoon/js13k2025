@@ -378,9 +378,9 @@
         
         // 重置游戏
         function resetGame() {
-            player.x = gameCanvas.width / 2;
-            player.y = gameCanvas.height / 2;
-            player.radius = 20;
+            player.x = 1000; // 放置在大地图中央
+            player.y = 1000;
+            player.radius = 5; // 设置为最小初始体型
             score = 0;
             enemies = [];
             food = [];
@@ -392,7 +392,7 @@
             }
             
             // 创建初始食物
-            for (let i = 0; i < 50; i++) {
+            for (let i = 0; i < 100; i++) {
                 spawnFood();
             }
         }
@@ -434,7 +434,7 @@
         function spawnEnemy() {
             const types = ['dog', 'mouse', 'cat'];
             const type = types[Math.floor(Math.random() * types.length)];
-            const baseRadius = Math.random() * 15 + 10;
+            const baseRadius = Math.random() * 15 + 5; // 敌人初始体型也调整，确保玩家可以通过吃食物成长
             
             // 尝试最多100次生成有效的位置
             let enemy;
@@ -445,8 +445,8 @@
                 if (attempts >= maxAttempts) {
                     // 如果尝试次数过多，就使用默认位置（避免无限循环）
                     enemy = {
-                        x: gameCanvas.width / 2,
-                        y: gameCanvas.height / 2,
+                        x: 1000,
+                        y: 1000,
                         radius: baseRadius,
                         speed: (25 - baseRadius) * 0.1 + 0.5,
                         directionX: Math.random() * 2 - 1,
@@ -457,9 +457,9 @@
                     break;
                 }
                 
-                // 随机生成位置
-                const x = baseRadius + Math.random() * (gameCanvas.width - baseRadius * 2);
-                const y = baseRadius + Math.random() * (gameCanvas.height - baseRadius * 2);
+                // 随机生成位置 - 更大的地图范围
+                const x = 200 + Math.random() * 1600;
+                const y = 200 + Math.random() * 1600;
                 
                 // 检查位置是否有效
                 if (isPositionValid(x, y, baseRadius)) {
@@ -495,17 +495,17 @@
                 if (attempts >= maxAttempts) {
                     // 如果尝试次数过多，就使用默认位置（避免无限循环）
                     foodItem = {
-                        x: gameCanvas.width / 2,
-                        y: gameCanvas.height / 2,
+                        x: 1000,
+                        y: 1000,
                         radius: radius,
                         color: '#' + Math.floor(Math.random()*16777215).toString(16)
                     };
                     break;
                 }
                 
-                // 随机生成位置
-                const x = radius + Math.random() * (gameCanvas.width - radius * 2);
-                const y = radius + Math.random() * (gameCanvas.height - radius * 2);
+                // 随机生成位置 - 更大的地图范围
+                const x = 200 + Math.random() * 1600;
+                const y = 200 + Math.random() * 1600;
                 
                 // 检查位置是否有效
                 if (isPositionValid(x, y, radius)) {
@@ -539,6 +539,21 @@
                 
                 ctx.clearRect(0, 0, gameCanvas.width, gameCanvas.height);
                 
+                // 计算视野缩放因子：体型越大，视野越大
+                const viewScale = Math.max(1, player.radius / 10);
+                
+                // 保存当前变换状态
+                ctx.save();
+                
+                // 应用视野变换：将玩家置于屏幕中心，并根据体型缩放
+                ctx.translate(gameCanvas.width / 2, gameCanvas.height / 2);
+                ctx.scale(viewScale, viewScale);
+                ctx.translate(-player.x, -player.y);
+                
+                // 绘制地图背景
+                ctx.fillStyle = '#f0f0f0';
+                ctx.fillRect(0, 0, 2000, 2000);
+                
                 // 更新和绘制玩家
                 updatePlayer();
                 drawPlayer();
@@ -554,14 +569,17 @@
                 // 检测碰撞
                 checkCollisions();
                 
-                // 显示分数
+                // 恢复变换状态
+                ctx.restore();
+                
+                // 显示分数（不随视野缩放）
                 drawScore();
                 
                 // 定期生成新敌人和食物
                 if (Math.random() < 0.02) {
                     spawnEnemy();
                 }
-                if (Math.random() < 0.05) {
+                if (Math.random() < 0.1) {
                     spawnFood();
                 }
             }
@@ -606,11 +624,11 @@
             player.x += moveX;
             player.y += moveY;
             
-            // 边界检查
+            // 边界检查 - 更大的地图范围
             if (player.x < player.radius) player.x = player.radius;
-            if (player.x > gameCanvas.width - player.radius) player.x = gameCanvas.width - player.radius;
+            if (player.x > 2000 - player.radius) player.x = 2000 - player.radius;
             if (player.y < player.radius) player.y = player.radius;
-            if (player.y > gameCanvas.height - player.radius) player.y = gameCanvas.height - player.radius;
+            if (player.y > 2000 - player.radius) player.y = 2000 - player.radius;
         }
         
         // 更新敌人位置
@@ -759,7 +777,7 @@
         // 更新食物
         function updateFood() {
             // 如果食物太少，生成更多
-            while (food.length < 30) {
+            while (food.length < 80) {
                 spawnFood();
             }
         }
@@ -1047,7 +1065,9 @@
             ctx.fillStyle = '#000';
             ctx.font = '20px Arial';
             ctx.textAlign = 'left';
-            ctx.fillText('Score: ' + score, 10, 30);
+            ctx.fillText('Score: ' + score, 20, 30);
+            ctx.fillText('Size: ' + Math.round(player.radius), 20, 60);
+            ctx.fillText('View: ' + Math.round((player.radius / 10) * 100) + '%', 20, 90);
         }
         
         // 开始游戏
