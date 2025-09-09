@@ -220,11 +220,11 @@
             <div class="gameTutorial">
                 <h3>Game Tutorial</h3>
                 <ul>
-                    <li>Click the screen with your mouse to interact with the game</li>
-                    <li>Collect items that appear on the screen to gain points</li>
-                    <li>Avoid dangerous obstacles</li>
-                    <li>Get the highest score possible within the time limit</li>
-                    <li>Complete specific tasks to unlock new characters</li>
+                    <li>Use arrow keys or WASD to control the black cat ball</li>
+                    <li>Eat smaller enemies to grow bigger</li>
+                    <li>Avoid bigger enemies to stay alive</li>
+                    <li>Enemies include dog balls, mouse balls, and cat balls</li>
+                    <li>The goal is to become the biggest ball in the arena!</li>
                 </ul>
             </div>
             <div class="gameCanvasContainer">
@@ -318,6 +318,737 @@
             setupCanvas();
         });
         
+        // 游戏状态和变量
+        let gameState = 'idle'; // idle, playing, gameOver
+        let player = {
+            x: 0,
+            y: 0,
+            radius: 20,
+            speed: 3,
+            color: '#000',
+            isBlackCat: true
+        };
+        let enemies = [];
+        let score = 0;
+        let food = [];
+        let ctx;
+        // 键盘状态跟踪
+        const keys = {
+            ArrowUp: false,
+            ArrowDown: false,
+            ArrowLeft: false,
+            ArrowRight: false,
+            // WASD键支持
+            KeyW: false,
+            KeyS: false,
+            KeyA: false,
+            KeyD: false
+        };
+        
+        // 帧率控制变量
+        const FPS = 60;
+        const frameInterval = 1000 / FPS;
+        let lastFrameTime = 0;
+        let animationId = null;
+        
+        // 初始化游戏
+        function initGame() {
+            ctx = gameCanvas.getContext('2d');
+            setupCanvas();
+            resetGame();
+            
+            // 添加键盘事件监听
+            document.addEventListener('keydown', handleKeyDown);
+            document.addEventListener('keyup', handleKeyUp);
+        }
+        
+        // 处理键盘按键按下事件
+        function handleKeyDown(e) {
+            if (keys.hasOwnProperty(e.code)) {
+                keys[e.code] = true;
+            }
+        }
+        
+        // 处理键盘按键释放事件
+        function handleKeyUp(e) {
+            if (keys.hasOwnProperty(e.code)) {
+                keys[e.code] = false;
+            }
+        }
+        
+        // 重置游戏
+        function resetGame() {
+            player.x = gameCanvas.width / 2;
+            player.y = gameCanvas.height / 2;
+            player.radius = 20;
+            score = 0;
+            enemies = [];
+            food = [];
+            gameState = 'playing';
+            
+            // 创建初始敌人
+            for (let i = 0; i < 15; i++) {
+                spawnEnemy();
+            }
+            
+            // 创建初始食物
+            for (let i = 0; i < 50; i++) {
+                spawnFood();
+            }
+        }
+        
+        // 检查位置是否有效（不与任何现有球重叠）
+        function isPositionValid(x, y, radius) {
+            // 检查与玩家的碰撞
+            const dxPlayer = x - player.x;
+            const dyPlayer = y - player.y;
+            const distancePlayer = Math.sqrt(dxPlayer * dxPlayer + dyPlayer * dyPlayer);
+            if (distancePlayer < radius + player.radius) {
+                return false;
+            }
+            
+            // 检查与所有敌人的碰撞
+            for (let i = 0; i < enemies.length; i++) {
+                const dxEnemy = x - enemies[i].x;
+                const dyEnemy = y - enemies[i].y;
+                const distanceEnemy = Math.sqrt(dxEnemy * dxEnemy + dyEnemy * dyEnemy);
+                if (distanceEnemy < radius + enemies[i].radius) {
+                    return false;
+                }
+            }
+            
+            // 检查与所有食物的碰撞（食物很小，但也需要避免）
+            for (let i = 0; i < food.length; i++) {
+                const dxFood = x - food[i].x;
+                const dyFood = y - food[i].y;
+                const distanceFood = Math.sqrt(dxFood * dxFood + dyFood * dyFood);
+                if (distanceFood < radius + food[i].radius) {
+                    return false;
+                }
+            }
+            
+            return true;
+        }
+        
+        // 生成敌人 - 确保敌人在地图内生成且不与任何现有球重叠
+        function spawnEnemy() {
+            const types = ['dog', 'mouse', 'cat'];
+            const type = types[Math.floor(Math.random() * types.length)];
+            const baseRadius = Math.random() * 15 + 10;
+            
+            // 尝试最多100次生成有效的位置
+            let enemy;
+            let attempts = 0;
+            const maxAttempts = 100;
+            
+            do {
+                if (attempts >= maxAttempts) {
+                    // 如果尝试次数过多，就使用默认位置（避免无限循环）
+                    enemy = {
+                        x: gameCanvas.width / 2,
+                        y: gameCanvas.height / 2,
+                        radius: baseRadius,
+                        speed: (25 - baseRadius) * 0.1 + 0.5,
+                        directionX: Math.random() * 2 - 1,
+                        directionY: Math.random() * 2 - 1,
+                        type: type,
+                        color: type === 'dog' ? '#8B4513' : (type === 'mouse' ? '#A0522D' : '#FF69B4')
+                    };
+                    break;
+                }
+                
+                // 随机生成位置
+                const x = baseRadius + Math.random() * (gameCanvas.width - baseRadius * 2);
+                const y = baseRadius + Math.random() * (gameCanvas.height - baseRadius * 2);
+                
+                // 检查位置是否有效
+                if (isPositionValid(x, y, baseRadius)) {
+                    enemy = {
+                        x: x,
+                        y: y,
+                        radius: baseRadius,
+                        speed: (25 - baseRadius) * 0.1 + 0.5,
+                        directionX: Math.random() * 2 - 1,
+                        directionY: Math.random() * 2 - 1,
+                        type: type,
+                        color: type === 'dog' ? '#8B4513' : (type === 'mouse' ? '#A0522D' : '#FF69B4')
+                    };
+                    break;
+                }
+                
+                attempts++;
+            } while (true);
+            
+            enemies.push(enemy);
+        }
+        
+        // 生成食物 - 确保食物不与任何现有球重叠
+        function spawnFood() {
+            const radius = Math.random() * 2 + 1;
+            
+            // 尝试最多100次生成有效的位置
+            let foodItem;
+            let attempts = 0;
+            const maxAttempts = 100;
+            
+            do {
+                if (attempts >= maxAttempts) {
+                    // 如果尝试次数过多，就使用默认位置（避免无限循环）
+                    foodItem = {
+                        x: gameCanvas.width / 2,
+                        y: gameCanvas.height / 2,
+                        radius: radius,
+                        color: '#' + Math.floor(Math.random()*16777215).toString(16)
+                    };
+                    break;
+                }
+                
+                // 随机生成位置
+                const x = radius + Math.random() * (gameCanvas.width - radius * 2);
+                const y = radius + Math.random() * (gameCanvas.height - radius * 2);
+                
+                // 检查位置是否有效
+                if (isPositionValid(x, y, radius)) {
+                    foodItem = {
+                        x: x,
+                        y: y,
+                        radius: radius,
+                        color: '#' + Math.floor(Math.random()*16777215).toString(16)
+                    };
+                    break;
+                }
+                
+                attempts++;
+            } while (true);
+            
+            food.push(foodItem);
+        }
+        
+        // 游戏主循环 - 限制为60帧
+        function gameLoop(timestamp) {
+            if (gameState !== 'playing') return;
+            
+            // 计算经过的时间
+            if (!lastFrameTime) lastFrameTime = timestamp;
+            const elapsed = timestamp - lastFrameTime;
+            
+            // 只有当经过的时间足够长时才执行更新
+            if (elapsed >= frameInterval) {
+                // 更新上一帧时间
+                lastFrameTime = timestamp - (elapsed % frameInterval);
+                
+                ctx.clearRect(0, 0, gameCanvas.width, gameCanvas.height);
+                
+                // 更新和绘制玩家
+                updatePlayer();
+                drawPlayer();
+                
+                // 更新和绘制敌人
+                updateEnemies();
+                drawEnemies();
+                
+                // 更新和绘制食物
+                updateFood();
+                drawFood();
+                
+                // 检测碰撞
+                checkCollisions();
+                
+                // 显示分数
+                drawScore();
+                
+                // 定期生成新敌人和食物
+                if (Math.random() < 0.02) {
+                    spawnEnemy();
+                }
+                if (Math.random() < 0.05) {
+                    spawnFood();
+                }
+            }
+            
+            animationId = requestAnimationFrame(gameLoop);
+        }
+        
+        // 更新玩家位置 - 使用键盘控制
+        function updatePlayer() {
+            // 根据按键状态计算移动方向
+            let moveX = 0;
+            let moveY = 0;
+            
+            // 上
+            if (keys.ArrowUp || keys.KeyW) {
+                moveY = -1;
+            }
+            // 下
+            if (keys.ArrowDown || keys.KeyS) {
+                moveY = 1;
+            }
+            // 左
+            if (keys.ArrowLeft || keys.KeyA) {
+                moveX = -1;
+            }
+            // 右
+            if (keys.ArrowRight || keys.KeyD) {
+                moveX = 1;
+            }
+            
+            // 归一化移动向量，确保斜向移动速度相同
+            const magnitude = Math.sqrt(moveX * moveX + moveY * moveY);
+            if (magnitude > 0) {
+                // 动态速度：使用平方根函数实现更平滑的速度下降曲线
+                const speedFactor = Math.max(0, 30 - player.radius);
+                const dynamicSpeed = Math.max(1, Math.sqrt(speedFactor) * 1.2 + 1.5);
+                moveX = (moveX / magnitude) * dynamicSpeed;
+                moveY = (moveY / magnitude) * dynamicSpeed;
+            }
+            
+            // 更新玩家位置
+            player.x += moveX;
+            player.y += moveY;
+            
+            // 边界检查
+            if (player.x < player.radius) player.x = player.radius;
+            if (player.x > gameCanvas.width - player.radius) player.x = gameCanvas.width - player.radius;
+            if (player.y < player.radius) player.y = player.radius;
+            if (player.y > gameCanvas.height - player.radius) player.y = gameCanvas.height - player.radius;
+        }
+        
+        // 更新敌人位置
+        function updateEnemies() {
+            for (let i = enemies.length - 1; i >= 0; i--) {
+                const e = enemies[i];
+                if (!e.target) e.target = null, e.targetUpdateCounter = 0;
+                
+                // 每30帧更新一次目标
+                if (e.targetUpdateCounter++ >= 30) {
+                    e.targetUpdateCounter = 0;
+                    e.target = findBestTarget(e);
+                }
+                
+                // 处理锁定目标的移动
+                if (e.target) {
+                    let targetX, targetY;
+                    if (e.target.type === 'food') {
+                        targetX = e.target.x;
+                        targetY = e.target.y;
+                    } else if (e.target.type === 'enemy' || e.target.type === 'player') {
+                        if (e.target.type === 'player' && e.radius > player.radius * 1.1) {
+                            targetX = player.x;
+                            targetY = player.y;
+                        } else if (e.target.type === 'player' && e.radius < player.radius * 1.1) {
+                            const dxPlayer = player.x - e.x;
+                            const dyPlayer = player.y - e.y;
+                            targetX = e.x - dxPlayer;
+                            targetY = e.y - dyPlayer;
+                        } else if (e.target.type === 'enemy') {
+                            if (shouldChase(e, e.target)) {
+                                targetX = e.target.x;
+                                targetY = e.target.y;
+                            } else {
+                                const dx = e.target.x - e.x;
+                                const dy = e.target.y - e.y;
+                                targetX = e.x - dx;
+                                targetY = e.y - dy;
+                            }
+                        }
+                        
+                        // 计算移动方向
+                        const dx = targetX - e.x;
+                        const dy = targetY - e.y;
+                        const magnitude = Math.sqrt(dx * dx + dy * dy);
+                        if (magnitude > 3) {
+                            e.directionX = dx / magnitude;
+                            e.directionY = dy / magnitude;
+                        }
+                    }
+                } else if (Math.random() < 0.02) {
+                    e.directionX = Math.random() * 2 - 1;
+                    e.directionY = Math.random() * 2 - 1;
+                }
+                
+                // 移动敌人（动态速度）
+                const speed = (30 - e.radius) * 0.1 + 0.5;
+                e.x += e.directionX * speed;
+                e.y += e.directionY * speed;
+                
+                // 边界检查
+                if (e.x < e.radius) e.x = e.radius, e.directionX = -e.directionX;
+                else if (e.x > gameCanvas.width - e.radius) e.x = gameCanvas.width - e.radius, e.directionX = -e.directionX;
+                if (e.y < e.radius) e.y = e.radius, e.directionY = -e.directionY;
+                else if (e.y > gameCanvas.height - e.radius) e.y = gameCanvas.height - e.radius, e.directionY = -e.directionY;
+            }
+        }
+        
+        // 为敌人寻找最佳目标
+        function findBestTarget(e) {
+            const detectionRange = 200;
+            let bestTarget = null;
+            let highestPriority = -1;
+            
+            // 1. 检查食物（优先级3）
+            for (let i = 0; i < food.length; i++) {
+                const dx = food[i].x - e.x;
+                const dy = food[i].y - e.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                if (distance < detectionRange && distance < (bestTarget ? Math.sqrt(Math.pow(bestTarget.x - e.x, 2) + Math.pow(bestTarget.y - e.y, 2)) : Infinity)) {
+                    bestTarget = {x: food[i].x, y: food[i].y, type: 'food', index: i};
+                    highestPriority = 3;
+                }
+            }
+            
+            // 2. 检查敌人（优先级2或4）
+            for (let i = 0; i < enemies.length; i++) {
+                const otherEnemy = enemies[i];
+                if (e === otherEnemy) continue;
+                const dx = otherEnemy.x - e.x;
+                const dy = otherEnemy.y - e.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                if (distance < detectionRange) {
+                    if (shouldAvoid(e, otherEnemy)) {
+                        if (highestPriority < 4) {
+                            bestTarget = {x: otherEnemy.x, y: otherEnemy.y, type: 'enemy', enemy: otherEnemy};
+                            highestPriority = 4;
+                        }
+                    } else if (shouldChase(e, otherEnemy) && distance < (bestTarget ? Math.sqrt(Math.pow(bestTarget.x - e.x, 2) + Math.pow(bestTarget.y - e.y, 2)) : Infinity)) {
+                        if (highestPriority < 2) {
+                            bestTarget = {x: otherEnemy.x, y: otherEnemy.y, type: 'enemy', enemy: otherEnemy};
+                            highestPriority = 2;
+                        }
+                    }
+                }
+            }
+            
+            // 3. 检查玩家（优先级1或4）
+            const dxPlayer = player.x - e.x;
+            const dyPlayer = player.y - e.y;
+            const distancePlayer = Math.sqrt(dxPlayer * dxPlayer + dyPlayer * dyPlayer);
+            if (distancePlayer < detectionRange) {
+                if (player.radius > e.radius * 1.1) {
+                    if (highestPriority < 4) {
+                        bestTarget = {type: 'player'};
+                        highestPriority = 4;
+                    }
+                } else if (e.radius > player.radius * 1.1 && highestPriority < 1) {
+                    bestTarget = {type: 'player'};
+                    highestPriority = 1;
+                }
+            }
+            
+            return bestTarget;
+        }
+        
+        // 判断是否应该追击
+        function shouldChase(e, otherEnemy) {
+            if (e.radius <= otherEnemy.radius * 1.1) return false;
+            if (e.type === 'mouse') return otherEnemy.type === 'dog';
+            else if (e.type === 'cat') return otherEnemy.type === 'mouse';
+            else if (e.type === 'dog') return otherEnemy.type === 'cat';
+            return false;
+        }
+        
+        // 判断是否应该躲避
+        function shouldAvoid(e, otherEnemy) {
+            if (e.radius > otherEnemy.radius * 1.1) return false;
+            if (e.type === 'mouse') return otherEnemy.type === 'cat';
+            else if (e.type === 'cat') return otherEnemy.type === 'dog';
+            else if (e.type === 'dog') return otherEnemy.type === 'mouse';
+            return false;
+        }
+        
+        // 更新食物
+        function updateFood() {
+            // 如果食物太少，生成更多
+            while (food.length < 30) {
+                spawnFood();
+            }
+        }
+        
+        // 检测碰撞
+        function checkCollisions() {
+            // 1. 玩家吃食物
+            for (let i = food.length - 1; i >= 0; i--) {
+                const dx = player.x - food[i].x;
+                const dy = player.y - food[i].y;
+                const d = Math.sqrt(dx * dx + dy * dy);
+                if (d < player.radius) {
+                    food.splice(i, 1);
+                    score++;
+                    player.radius = Math.sqrt(player.radius * player.radius + 0.5);
+                }
+            }
+            
+            // 2. 敌人吃食物
+            for (let i = enemies.length - 1; i >= 0; i--) {
+                const e = enemies[i];
+                for (let j = food.length - 1; j >= 0; j--) {
+                    const dx = e.x - food[j].x;
+                    const dy = e.y - food[j].y;
+                    const d = Math.sqrt(dx * dx + dy * dy);
+                    if (d < e.radius) {
+                        food.splice(j, 1);
+                        e.radius = Math.sqrt(e.radius * e.radius + 0.2);
+                    }
+                }
+            }
+            
+            // 3. 玩家与敌人碰撞
+            for (let i = enemies.length - 1; i >= 0; i--) {
+                const e = enemies[i];
+                const dx = player.x - e.x;
+                const dy = player.y - e.y;
+                const d = Math.sqrt(dx * dx + dy * dy);
+                if (d < player.radius + e.radius) {
+                    if (player.radius > e.radius * 1.1) {
+                        enemies.splice(i, 1);
+                        score += Math.floor(e.radius * 2);
+                        player.radius = Math.sqrt(player.radius * player.radius + e.radius * e.radius * 0.5);
+                    } else if (e.radius > player.radius * 1.1) {
+                        gameOver();
+                        return;
+                    } else {
+                        // 相似体型碰撞时，让它们互相推开
+                        const angle = Math.atan2(dy, dx);
+                        const pushDistance = (player.radius + e.radius - d) * 0.5;
+                        player.x += Math.cos(angle) * pushDistance;
+                        player.y += Math.sin(angle) * pushDistance;
+                        e.x -= Math.cos(angle) * pushDistance;
+                        e.y -= Math.sin(angle) * pushDistance;
+                    }
+                }
+            }
+            
+            // 4. 敌人之间的碰撞
+            for (let i = 0; i < enemies.length; i++) {
+                for (let j = i + 1; j < enemies.length; j++) {
+                    const e1 = enemies[i];
+                    const e2 = enemies[j];
+                    const dx = e1.x - e2.x;
+                    const dy = e1.y - e2.y;
+                    const d = Math.sqrt(dx * dx + dy * dy);
+                    if (d < e1.radius + e2.radius) {
+                        if (e1.radius > e2.radius * 1.1) {
+                            e1.radius = Math.sqrt(e1.radius * e1.radius + e2.radius * e2.radius * 0.5);
+                            enemies.splice(j, 1);
+                            j--;
+                        } else if (e2.radius > e1.radius * 1.1) {
+                            e2.radius = Math.sqrt(e2.radius * e2.radius + e1.radius * e1.radius * 0.5);
+                            enemies.splice(i, 1);
+                            i--;
+                            break;
+                        } else {
+                            // 相似体型碰撞时，让它们互相推开
+                            const angle = Math.atan2(dy, dx);
+                            const pushDistance = (e1.radius + e2.radius - d) * 0.5;
+                            e1.x += Math.cos(angle) * pushDistance;
+                            e1.y += Math.sin(angle) * pushDistance;
+                            e2.x -= Math.cos(angle) * pushDistance;
+                            e2.y -= Math.sin(angle) * pushDistance;
+                        }
+                    }
+                }
+            }
+        }
+        
+        // 游戏结束
+        function gameOver() {
+            gameState = 'gameOver';
+            
+            // 取消动画帧请求
+            if (animationId) {
+                cancelAnimationFrame(animationId);
+                animationId = null;
+            }
+            
+            // 显示游戏结束画面
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+            ctx.fillRect(0, 0, gameCanvas.width, gameCanvas.height);
+            
+            ctx.fillStyle = '#000';
+            ctx.font = '30px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('Game Over', gameCanvas.width / 2, gameCanvas.height / 2 - 20);
+            ctx.font = '20px Arial';
+            ctx.fillText('Your Score: ' + score, gameCanvas.width / 2, gameCanvas.height / 2 + 20);
+            ctx.fillText('Click to play again', gameCanvas.width / 2, gameCanvas.height / 2 + 60);
+            
+            // 添加点击重新开始
+            gameCanvas.addEventListener('click', restartGame);
+        }
+        
+        // 重新开始游戏
+        function restartGame() {
+            if (gameState === 'gameOver') {
+                gameCanvas.removeEventListener('click', restartGame);
+                resetGame();
+                gameLoop();
+            }
+        }
+        
+        // 绘制玩家
+        function drawPlayer() {
+            ctx.fillStyle = player.color;
+            ctx.beginPath();
+            ctx.arc(player.x, player.y, player.radius, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // 绘制黑猫特征
+            ctx.fillStyle = 'white';
+            // 眼睛
+            const eyeSize = player.radius * 0.15;
+            const eyeOffset = player.radius * 0.4;
+            ctx.beginPath();
+            ctx.arc(player.x - eyeOffset, player.y - eyeOffset / 2, eyeSize, 0, Math.PI * 2);
+            ctx.arc(player.x + eyeOffset, player.y - eyeOffset / 2, eyeSize, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // 瞳孔
+            ctx.fillStyle = 'black';
+            const pupilSize = eyeSize * 0.5;
+            ctx.beginPath();
+            ctx.arc(player.x - eyeOffset, player.y - eyeOffset / 2, pupilSize, 0, Math.PI * 2);
+            ctx.arc(player.x + eyeOffset, player.y - eyeOffset / 2, pupilSize, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // 嘴巴
+            ctx.strokeStyle = 'white';
+            ctx.lineWidth = player.radius * 0.05;
+            ctx.beginPath();
+            ctx.arc(player.x, player.y + player.radius * 0.2, player.radius * 0.3, 0, Math.PI);
+            ctx.stroke();
+        }
+        
+        // 绘制敌人
+        function drawEnemies() {
+            for (let i = 0; i < enemies.length; i++) {
+                const enemy = enemies[i];
+                
+                ctx.fillStyle = enemy.color;
+                ctx.beginPath();
+                ctx.arc(enemy.x, enemy.y, enemy.radius, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // 根据类型绘制特征
+                ctx.fillStyle = 'white';
+                
+                if (enemy.type === 'dog') {
+                    // 狗耳朵
+                    const earSize = enemy.radius * 0.3;
+                    ctx.beginPath();
+                    ctx.moveTo(enemy.x - enemy.radius * 0.5, enemy.y - enemy.radius);
+                    ctx.lineTo(enemy.x - enemy.radius * 0.8, enemy.y - enemy.radius - earSize);
+                    ctx.lineTo(enemy.x - enemy.radius * 0.2, enemy.y - enemy.radius - earSize * 0.5);
+                    ctx.closePath();
+                    ctx.fill();
+                    
+                    ctx.beginPath();
+                    ctx.moveTo(enemy.x + enemy.radius * 0.5, enemy.y - enemy.radius);
+                    ctx.lineTo(enemy.x + enemy.radius * 0.8, enemy.y - enemy.radius - earSize);
+                    ctx.lineTo(enemy.x + enemy.radius * 0.2, enemy.y - enemy.radius - earSize * 0.5);
+                    ctx.closePath();
+                    ctx.fill();
+                    
+                    // 狗眼睛
+                    const eyeSize = enemy.radius * 0.15;
+                    const eyeOffset = enemy.radius * 0.4;
+                    ctx.beginPath();
+                    ctx.arc(enemy.x - eyeOffset, enemy.y - eyeOffset / 2, eyeSize, 0, Math.PI * 2);
+                    ctx.arc(enemy.x + eyeOffset, enemy.y - eyeOffset / 2, eyeSize, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    // 狗鼻子
+                    ctx.fillStyle = 'black';
+                    ctx.beginPath();
+                    ctx.arc(enemy.x, enemy.y, eyeSize, 0, Math.PI * 2);
+                    ctx.fill();
+                } else if (enemy.type === 'mouse') {
+                    // 老鼠耳朵
+                    const earSize = enemy.radius * 0.3;
+                    ctx.beginPath();
+                    ctx.arc(enemy.x - enemy.radius * 0.5, enemy.y - enemy.radius * 0.8, earSize, 0, Math.PI * 2);
+                    ctx.arc(enemy.x + enemy.radius * 0.5, enemy.y - enemy.radius * 0.8, earSize, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    // 老鼠眼睛
+                    const eyeSize = enemy.radius * 0.15;
+                    const eyeOffset = enemy.radius * 0.4;
+                    ctx.beginPath();
+                    ctx.arc(enemy.x - eyeOffset, enemy.y - eyeOffset / 4, eyeSize, 0, Math.PI * 2);
+                    ctx.arc(enemy.x + eyeOffset, enemy.y - eyeOffset / 4, eyeSize, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    // 老鼠鼻子
+                    ctx.fillStyle = 'pink';
+                    ctx.beginPath();
+                    ctx.arc(enemy.x, enemy.y + enemy.radius * 0.2, eyeSize * 0.8, 0, Math.PI * 2);
+                    ctx.fill();
+                } else if (enemy.type === 'cat') {
+                    // 猫耳朵
+                    const earSize = enemy.radius * 0.4;
+                    ctx.beginPath();
+                    ctx.moveTo(enemy.x - enemy.radius * 0.5, enemy.y - enemy.radius);
+                    ctx.lineTo(enemy.x - enemy.radius * 0.7, enemy.y - enemy.radius - earSize);
+                    ctx.lineTo(enemy.x - enemy.radius * 0.3, enemy.y - enemy.radius);
+                    ctx.closePath();
+                    ctx.fill();
+                    
+                    ctx.beginPath();
+                    ctx.moveTo(enemy.x + enemy.radius * 0.5, enemy.y - enemy.radius);
+                    ctx.lineTo(enemy.x + enemy.radius * 0.7, enemy.y - enemy.radius - earSize);
+                    ctx.lineTo(enemy.x + enemy.radius * 0.3, enemy.y - enemy.radius);
+                    ctx.closePath();
+                    ctx.fill();
+                    
+                    // 猫眼睛
+                    const eyeSize = enemy.radius * 0.15;
+                    const eyeOffset = enemy.radius * 0.4;
+                    ctx.beginPath();
+                    ctx.arc(enemy.x - eyeOffset, enemy.y - eyeOffset / 2, eyeSize, 0, Math.PI * 2);
+                    ctx.arc(enemy.x + eyeOffset, enemy.y - eyeOffset / 2, eyeSize, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    // 猫胡须
+                    ctx.strokeStyle = 'white';
+                    ctx.lineWidth = enemy.radius * 0.03;
+                    ctx.beginPath();
+                    ctx.moveTo(enemy.x - enemy.radius * 0.6, enemy.y + enemy.radius * 0.1);
+                    ctx.lineTo(enemy.x - enemy.radius * 0.3, enemy.y + enemy.radius * 0.05);
+                    ctx.moveTo(enemy.x - enemy.radius * 0.6, enemy.y + enemy.radius * 0.2);
+                    ctx.lineTo(enemy.x - enemy.radius * 0.3, enemy.y + enemy.radius * 0.2);
+                    ctx.moveTo(enemy.x + enemy.radius * 0.3, enemy.y + enemy.radius * 0.05);
+                    ctx.lineTo(enemy.x + enemy.radius * 0.6, enemy.y + enemy.radius * 0.1);
+                    ctx.moveTo(enemy.x + enemy.radius * 0.3, enemy.y + enemy.radius * 0.2);
+                    ctx.lineTo(enemy.x + enemy.radius * 0.6, enemy.y + enemy.radius * 0.2);
+                    ctx.stroke();
+                }
+                
+                // 敌人瞳孔
+                ctx.fillStyle = 'black';
+                const pupilSize = enemy.radius * 0.08;
+                ctx.beginPath();
+                ctx.arc(enemy.x - enemy.radius * 0.4, enemy.y - enemy.radius * 0.2, pupilSize, 0, Math.PI * 2);
+                ctx.arc(enemy.x + enemy.radius * 0.4, enemy.y - enemy.radius * 0.2, pupilSize, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+        
+        // 绘制食物
+        function drawFood() {
+            for (let i = 0; i < food.length; i++) {
+                ctx.fillStyle = food[i].color;
+                ctx.beginPath();
+                ctx.arc(food[i].x, food[i].y, food[i].radius, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+        
+        // 绘制分数
+        function drawScore() {
+            ctx.fillStyle = '#000';
+            ctx.font = '20px Arial';
+            ctx.textAlign = 'left';
+            ctx.fillText('Score: ' + score, 10, 30);
+        }
+        
         // 开始游戏
         startBtn.addEventListener('click', () => {
             gameContainer.classList.add('show');
@@ -325,12 +1056,42 @@
             
             // 游戏容器中创建鱼背景
             createFishBg(gameFishBg);
+            
+            // 初始化游戏并开始游戏循环
+            if (gameState === 'idle') {
+                initGame();
+            }
+            resetGame();
+            // 重置帧率控制变量
+            lastFrameTime = 0;
+            // 使用requestAnimationFrame启动游戏循环
+            if (animationId) {
+                cancelAnimationFrame(animationId);
+            }
+            animationId = requestAnimationFrame(gameLoop);
         });
         
         // 返回首页
         backBtn.addEventListener('click', () => {
             gameContainer.classList.remove('show');
+            gameState = 'idle';
+            
+            // 取消动画帧请求
+            if (animationId) {
+                cancelAnimationFrame(animationId);
+                animationId = null;
+            }
         });
+        
+        // 清理函数 - 防止内存泄漏
+        function cleanupGame() {
+            document.removeEventListener('keydown', handleKeyDown);
+            document.removeEventListener('keyup', handleKeyUp);
+            if (animationId) {
+                cancelAnimationFrame(animationId);
+                animationId = null;
+            }
+        }
     </script>
 </body>
 </html>
