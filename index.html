@@ -220,7 +220,7 @@
             <div class="gameTutorial">
                 <h3>Game Tutorial</h3>
                 <ul>
-                    <li>Use arrow keys or WASD to control the black cat ball</li>
+                    <li>Drag the mouse to control the black cat ball</li>
                     <li>Eat smaller enemies to grow bigger</li>
                     <li>Avoid bigger enemies to stay alive</li>
                     <li>Enemies include dog balls, mouse balls, and cat balls</li>
@@ -332,18 +332,9 @@
         let score = 0;
         let food = [];
         let ctx;
-        // 键盘状态跟踪
-        const keys = {
-            ArrowUp: false,
-            ArrowDown: false,
-            ArrowLeft: false,
-            ArrowRight: false,
-            // WASD键支持
-            KeyW: false,
-            KeyS: false,
-            KeyA: false,
-            KeyD: false
-        };
+        // 鼠标状态跟踪
+        let mouseDirection = { x: 0, y: 0 };
+        let isMouseDown = false;
         
         // 帧率控制变量
         const FPS = 60;
@@ -357,22 +348,74 @@
             setupCanvas();
             resetGame();
             
-            // 添加键盘事件监听
-            document.addEventListener('keydown', handleKeyDown);
-            document.addEventListener('keyup', handleKeyUp);
+            // 添加鼠标事件监听
+            gameCanvas.addEventListener('mousedown', handleMouseDown);
+            document.addEventListener('mousemove', handleMouseMove);
+            document.addEventListener('mouseup', handleMouseUp);
+            
+            // 添加触摸事件监听
+            gameCanvas.addEventListener('touchstart', handleTouchStart);
+            document.addEventListener('touchmove', handleTouchMove);
+            document.addEventListener('touchend', handleTouchEnd);
         }
         
-        // 处理键盘按键按下事件
-        function handleKeyDown(e) {
-            if (keys.hasOwnProperty(e.code)) {
-                keys[e.code] = true;
+        // 处理鼠标按下事件
+        function handleMouseDown(e) {
+            isMouseDown = true;
+            updateMouseDirection(e);
+        }
+        
+        // 处理鼠标移动事件
+        function handleMouseMove(e) {
+            if (isMouseDown) {
+                updateMouseDirection(e);
             }
         }
         
-        // 处理键盘按键释放事件
-        function handleKeyUp(e) {
-            if (keys.hasOwnProperty(e.code)) {
-                keys[e.code] = false;
+        // 触摸事件支持
+        function handleTouchStart(e) {
+            e.preventDefault(); // 防止默认触摸行为
+            isMouseDown = true;
+            updateMouseDirection(e.touches[0]);
+        }
+        
+        function handleTouchMove(e) {
+            e.preventDefault(); // 防止默认触摸行为
+            if (isMouseDown && e.touches.length > 0) {
+                updateMouseDirection(e.touches[0]);
+            }
+        }
+        
+        function handleTouchEnd() {
+            isMouseDown = false;
+            mouseDirection = { x: 0, y: 0 };
+        }
+        
+        // 处理鼠标释放事件
+        function handleMouseUp() {
+            isMouseDown = false;
+            mouseDirection = { x: 0, y: 0 };
+        }
+        
+        // 更新鼠标方向
+        function updateMouseDirection(e) {
+            const rect = gameCanvas.getBoundingClientRect();
+            const canvasX = e.clientX - rect.left;
+            const canvasY = e.clientY - rect.top;
+            
+            // 获取游戏画布中心点
+            const centerX = rect.width / 2;
+            const centerY = rect.height / 2;
+            
+            // 计算鼠标相对于中心点的方向
+            mouseDirection.x = canvasX - centerX;
+            mouseDirection.y = canvasY - centerY;
+            
+            // 归一化方向向量
+            const magnitude = Math.sqrt(mouseDirection.x * mouseDirection.x + mouseDirection.y * mouseDirection.y);
+            if (magnitude > 0) {
+                mouseDirection.x /= magnitude;
+                mouseDirection.y /= magnitude;
             }
         }
         
@@ -380,7 +423,7 @@
         function resetGame() {
             player.x = 1000; // 放置在大地图中央
             player.y = 1000;
-            player.radius = 5; // 设置为最小初始体型
+            player.radius = 10; // 增加初始体型，使玩家更容易看到
             score = 0;
             enemies = [];
             food = [];
@@ -391,8 +434,8 @@
                 spawnEnemy();
             }
             
-            // 创建初始食物
-            for (let i = 0; i < 100; i++) {
+            // 创建初始食物 - 增加初始食物数量
+            for (let i = 0; i < 200; i++) {
                 spawnFood();
             }
         }
@@ -482,7 +525,7 @@
             enemies.push(enemy);
         }
         
-        // 生成食物 - 确保食物不与任何现有球重叠
+        // 生成食物 - 确保食物不与任何现有球重叠，优化生成位置使食物更密集
         function spawnFood() {
             const radius = Math.random() * 2 + 1;
             
@@ -503,9 +546,21 @@
                     break;
                 }
                 
-                // 随机生成位置 - 更大的地图范围
-                const x = 200 + Math.random() * 1600;
-                const y = 200 + Math.random() * 1600;
+                // 随机生成位置 - 偏向于玩家周围区域，使食物更密集
+                let x, y;
+                if (Math.random() < 0.7) {
+                    // 70%的概率在玩家周围生成食物
+                    const playerRange = 500; // 玩家周围的生成范围
+                    x = player.x + (Math.random() - 0.5) * playerRange;
+                    y = player.y + (Math.random() - 0.5) * playerRange;
+                    // 确保在地图范围内
+                    x = Math.max(0, Math.min(2000, x));
+                    y = Math.max(0, Math.min(2000, y));
+                } else {
+                    // 30%的概率在整个地图范围内生成食物
+                    x = 200 + Math.random() * 1600;
+                    y = 200 + Math.random() * 1600;
+                }
                 
                 // 检查位置是否有效
                 if (isPositionValid(x, y, radius)) {
@@ -539,8 +594,9 @@
                 
                 ctx.clearRect(0, 0, gameCanvas.width, gameCanvas.height);
                 
-                // 计算视野缩放因子：体型越大，视野越大
-                const viewScale = Math.max(1, player.radius / 10);
+                // 计算视野缩放因子：使用更激进的增长曲线，使体型变大时能看到更多区域
+                // 结合平方根和线性项，确保视野随体型增大而显著增加，逐渐能看到整个地图
+                const viewScale = Math.max(1.5, 1.5 + Math.sqrt(player.radius) * 0.5 + player.radius * 0.02);
                 
                 // 保存当前变换状态
                 ctx.save();
@@ -575,11 +631,11 @@
                 // 显示分数（不随视野缩放）
                 drawScore();
                 
-                // 定期生成新敌人和食物
+                // 定期生成新敌人和食物 - 增加食物生成概率
                 if (Math.random() < 0.02) {
                     spawnEnemy();
                 }
-                if (Math.random() < 0.1) {
+                if (Math.random() < 0.3) {
                     spawnFood();
                 }
             }
@@ -587,49 +643,25 @@
             animationId = requestAnimationFrame(gameLoop);
         }
         
-        // 更新玩家位置 - 使用键盘控制
+        // 更新玩家位置 - 使用鼠标方向控制
         function updatePlayer() {
-            // 根据按键状态计算移动方向
-            let moveX = 0;
-            let moveY = 0;
-            
-            // 上
-            if (keys.ArrowUp || keys.KeyW) {
-                moveY = -1;
-            }
-            // 下
-            if (keys.ArrowDown || keys.KeyS) {
-                moveY = 1;
-            }
-            // 左
-            if (keys.ArrowLeft || keys.KeyA) {
-                moveX = -1;
-            }
-            // 右
-            if (keys.ArrowRight || keys.KeyD) {
-                moveX = 1;
-            }
-            
-            // 归一化移动向量，确保斜向移动速度相同
-            const magnitude = Math.sqrt(moveX * moveX + moveY * moveY);
-            if (magnitude > 0) {
+            // 只有在鼠标按下时才移动玩家
+            if (isMouseDown) {
                 // 动态速度：使用平方根函数实现更平滑的速度下降曲线
                 const speedFactor = Math.max(0, 30 - player.radius);
                 const dynamicSpeed = Math.max(1, Math.sqrt(speedFactor) * 1.2 + 1.5);
-                moveX = (moveX / magnitude) * dynamicSpeed;
-                moveY = (moveY / magnitude) * dynamicSpeed;
+                
+                // 根据鼠标方向移动玩家
+                player.x += mouseDirection.x * dynamicSpeed;
+                player.y += mouseDirection.y * dynamicSpeed;
+                
+                // 循环边界 - 到达一边会自动连接到另一边
+                const mapSize = 2000;
+                if (player.x < 0) player.x = mapSize;
+                else if (player.x > mapSize) player.x = 0;
+                if (player.y < 0) player.y = mapSize;
+                else if (player.y > mapSize) player.y = 0;
             }
-            
-            // 更新玩家位置
-            player.x += moveX;
-            player.y += moveY;
-            
-            // 循环边界 - 到达一边会自动连接到另一边
-            const mapSize = 2000;
-            if (player.x < 0) player.x = mapSize;
-            else if (player.x > mapSize) player.x = 0;
-            if (player.y < 0) player.y = mapSize;
-            else if (player.y > mapSize) player.y = 0;
         }
         
         // 更新敌人位置
@@ -780,10 +812,10 @@
             return false;
         }
         
-        // 更新食物
+        // 更新食物 - 提高食物数量的最低阈值
         function updateFood() {
             // 如果食物太少，生成更多
-            while (food.length < 80) {
+            while (food.length < 200) {
                 spawnFood();
             }
         }
@@ -1121,8 +1153,16 @@
         
         // 清理函数 - 防止内存泄漏
         function cleanupGame() {
-            document.removeEventListener('keydown', handleKeyDown);
-            document.removeEventListener('keyup', handleKeyUp);
+            // 移除鼠标事件监听器
+            gameCanvas.removeEventListener('mousedown', handleMouseDown);
+            document.removeEventListener('mousemove', handleMouseMove);
+            document.removeEventListener('mouseup', handleMouseUp);
+            
+            // 移除触摸事件监听器
+            gameCanvas.removeEventListener('touchstart', handleTouchStart);
+            document.removeEventListener('touchmove', handleTouchMove);
+            document.removeEventListener('touchend', handleTouchEnd);
+            
             if (animationId) {
                 cancelAnimationFrame(animationId);
                 animationId = null;
