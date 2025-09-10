@@ -957,6 +957,40 @@
             ctx.arc(player.x, player.y, player.radius, 0, Math.PI * 2);
             ctx.fill();
             
+            // 绘制指示箭头 - 当鼠标按下时显示
+            if (isMouseDown && (mouseDirection.x !== 0 || mouseDirection.y !== 0)) {
+                const arrowLength = player.radius * 1.5;
+                const arrowX = player.x + mouseDirection.x * arrowLength;
+                const arrowY = player.y + mouseDirection.y * arrowLength;
+                
+                // 绘制箭头线条
+                ctx.strokeStyle = 'white';
+                ctx.lineWidth = player.radius * 0.1;
+                ctx.beginPath();
+                ctx.moveTo(player.x, player.y);
+                ctx.lineTo(arrowX, arrowY);
+                ctx.stroke();
+                
+                // 绘制箭头头部
+                const angle = Math.atan2(mouseDirection.y, mouseDirection.x);
+                const headLength = player.radius * 0.4;
+                const headAngle = Math.PI / 6; // 30度
+                
+                ctx.fillStyle = 'white';
+                ctx.beginPath();
+                ctx.moveTo(arrowX, arrowY);
+                ctx.lineTo(
+                    arrowX - headLength * Math.cos(angle - headAngle),
+                    arrowY - headLength * Math.sin(angle - headAngle)
+                );
+                ctx.lineTo(
+                    arrowX - headLength * Math.cos(angle + headAngle),
+                    arrowY - headLength * Math.sin(angle + headAngle)
+                );
+                ctx.closePath();
+                ctx.fill();
+            }
+            
             // 绘制黑猫特征
             ctx.fillStyle = 'white';
             // 眼睛
