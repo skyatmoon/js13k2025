@@ -964,7 +964,7 @@
                 const arrowY = player.y + mouseDirection.y * arrowLength;
                 
                 // 绘制箭头线条
-                ctx.strokeStyle = 'white';
+                ctx.strokeStyle = 'red';
                 ctx.lineWidth = player.radius * 0.1;
                 ctx.beginPath();
                 ctx.moveTo(player.x, player.y);
@@ -976,7 +976,7 @@
                 const headLength = player.radius * 0.4;
                 const headAngle = Math.PI / 6; // 30度
                 
-                ctx.fillStyle = 'white';
+                ctx.fillStyle = 'red';
                 ctx.beginPath();
                 ctx.moveTo(arrowX, arrowY);
                 ctx.lineTo(
