@@ -594,9 +594,12 @@
                 
                 ctx.clearRect(0, 0, gameCanvas.width, gameCanvas.height);
                 
-                // 计算视野缩放因子：使用更激进的增长曲线，使体型变大时能看到更多区域
-                // 结合平方根和线性项，确保视野随体型增大而显著增加，逐渐能看到整个地图
-                const viewScale = Math.max(1.5, 1.5 + Math.sqrt(player.radius) * 0.5 + player.radius * 0.02);
+                // 计算视野缩放因子：优化的高空相机效果
+                // 随着玩家体型增大，视野会适度变广，但保留足够的大小感，让玩家能感受到自己的球在变大
+                const baseScale = 50; // 增加基础缩放因子，让玩家球看起来更大
+                const minScale = 0.5; // 提高最小缩放比例，防止过度缩小
+                // 使用更平缓的反比例关系，结合对数函数让变化更自然
+                const viewScale = Math.max(minScale, baseScale / (player.radius * 0.3 + 10));
                 
                 // 保存当前变换状态
                 ctx.save();
