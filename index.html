@@ -992,28 +992,74 @@
             }
             
             // 绘制黑猫特征
-            ctx.fillStyle = 'white';
+            // 添加猫耳朵
+            ctx.fillStyle = player.color;
+            const earHeight = player.radius * 0.6;
+            const earWidth = player.radius * 0.3;
+            
+            // 左耳
+            ctx.beginPath();
+            ctx.moveTo(player.x - player.radius * 0.3, player.y - player.radius);
+            ctx.lineTo(player.x - player.radius * 0.7, player.y - player.radius - earHeight);
+            ctx.lineTo(player.x - player.radius * 0.1, player.y - player.radius - earHeight * 0.3);
+            ctx.closePath();
+            ctx.fill();
+            
+            // 右耳
+            ctx.beginPath();
+            ctx.moveTo(player.x + player.radius * 0.3, player.y - player.radius);
+            ctx.lineTo(player.x + player.radius * 0.7, player.y - player.radius - earHeight);
+            ctx.lineTo(player.x + player.radius * 0.1, player.y - player.radius - earHeight * 0.3);
+            ctx.closePath();
+            ctx.fill();
+            
             // 眼睛
+            ctx.fillStyle = 'white';
             const eyeSize = player.radius * 0.15;
-            const eyeOffset = player.radius * 0.4;
+            const eyeOffset = player.radius * 0.35;
             ctx.beginPath();
             ctx.arc(player.x - eyeOffset, player.y - eyeOffset / 2, eyeSize, 0, Math.PI * 2);
             ctx.arc(player.x + eyeOffset, player.y - eyeOffset / 2, eyeSize, 0, Math.PI * 2);
             ctx.fill();
             
-            // 瞳孔
+            // 瞳孔 - 使用arc方法确保兼容性
             ctx.fillStyle = 'black';
             const pupilSize = eyeSize * 0.5;
             ctx.beginPath();
-            ctx.arc(player.x - eyeOffset, player.y - eyeOffset / 2, pupilSize, 0, Math.PI * 2);
-            ctx.arc(player.x + eyeOffset, player.y - eyeOffset / 2, pupilSize, 0, Math.PI * 2);
+            ctx.arc(player.x - eyeOffset + player.radius * 0.03, player.y - eyeOffset / 2, pupilSize, 0, Math.PI * 2);
+            ctx.arc(player.x + eyeOffset + player.radius * 0.03, player.y - eyeOffset / 2, pupilSize, 0, Math.PI * 2);
             ctx.fill();
             
-            // 嘴巴
+            // 猫嘴 - 更符合猫的形象
             ctx.strokeStyle = 'white';
             ctx.lineWidth = player.radius * 0.05;
             ctx.beginPath();
-            ctx.arc(player.x, player.y + player.radius * 0.2, player.radius * 0.3, 0, Math.PI);
+            // 上唇
+            ctx.moveTo(player.x - player.radius * 0.2, player.y + player.radius * 0.1);
+            ctx.quadraticCurveTo(player.x, player.y + player.radius * 0.25, player.x + player.radius * 0.2, player.y + player.radius * 0.1);
+            // 下唇
+            ctx.moveTo(player.x - player.radius * 0.15, player.y + player.radius * 0.1);
+            ctx.quadraticCurveTo(player.x, player.y + player.radius * 0.2, player.x + player.radius * 0.15, player.y + player.radius * 0.1);
+            ctx.stroke();
+            
+            // 添加猫胡须
+            ctx.strokeStyle = 'white';
+            ctx.lineWidth = player.radius * 0.03;
+            ctx.beginPath();
+            // 左胡须
+            ctx.moveTo(player.x - player.radius * 0.4, player.y + player.radius * 0.05);
+            ctx.lineTo(player.x - player.radius * 0.7, player.y - player.radius * 0.05);
+            ctx.moveTo(player.x - player.radius * 0.4, player.y + player.radius * 0.1);
+            ctx.lineTo(player.x - player.radius * 0.7, player.y + player.radius * 0.1);
+            ctx.moveTo(player.x - player.radius * 0.4, player.y + player.radius * 0.15);
+            ctx.lineTo(player.x - player.radius * 0.7, player.y + player.radius * 0.25);
+            // 右胡须
+            ctx.moveTo(player.x + player.radius * 0.4, player.y + player.radius * 0.05);
+            ctx.lineTo(player.x + player.radius * 0.7, player.y - player.radius * 0.05);
+            ctx.moveTo(player.x + player.radius * 0.4, player.y + player.radius * 0.1);
+            ctx.lineTo(player.x + player.radius * 0.7, player.y + player.radius * 0.1);
+            ctx.moveTo(player.x + player.radius * 0.4, player.y + player.radius * 0.15);
+            ctx.lineTo(player.x + player.radius * 0.7, player.y + player.radius * 0.25);
             ctx.stroke();
         }
         
