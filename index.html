@@ -164,7 +164,6 @@
             position: relative;
             box-shadow: 0 2vw 10vw rgba(0,0,0,0.1);
             padding: 2vw;
-            flex-shrink: 0;
         }
         
         #gameCanvas {
@@ -208,6 +207,10 @@
     <!-- Home Page -->
     <div class="startPage">
         <h1 class="gameTitle">Cat Underwork</h1>
+        <div style="margin-bottom: 3vh;">
+            <label for="playerName" style="font-size: 1.5vw; display: block; margin-bottom: 1vh;">Enter your name:</label>
+            <input type="text" id="playerName" placeholder="player" style="padding: 1vh 2vw; font-size: 1.5vw; border: 2px solid #000; border-radius: 5px; text-align: center;" maxlength="10">
+        </div>
         <button class="startPageButton">Start Game</button>
         <div class="fishBackground"></div>
     </div>
@@ -265,6 +268,12 @@
             <div class="gameCanvasContainer">
                 <canvas id="gameCanvas"></canvas>
             </div>
+            <div class="leaderboard" style="position: absolute; top: 20px; right: 20px; width: 280px; padding: 15px; background: rgba(255, 255, 255, 0.6); border-radius: 10px; overflow-y: auto; box-shadow: 0 4px 20px rgba(0,0,0,0.1); z-index: 10; font-size: 14px;">
+                <h3 style="font-size: 18px; margin-top: 0; margin-bottom: 15px; text-align: center;">Leaderboard</h3>
+                <div id="leaderboardList">
+                    <!-- Leaderboard entries will be dynamically added here -->
+                </div>
+            </div>
         </div>
     </div>
     
@@ -274,9 +283,11 @@
         const gameFishBg = document.querySelector('.gameContainer .fishBackground');
         const startPg = document.querySelector('.startPage');
         const startBtn = document.querySelector('.startPageButton');
+        const playerNameInput = document.getElementById('playerName');
         const gameContainer = document.querySelector('.gameContainer');
         const backBtn = document.querySelector('.backButton');
         const gameCanvas = document.getElementById('gameCanvas');
+        const leaderboardList = document.getElementById('leaderboardList');
         
         // 创建鱼背景
         function createFishBg(container) {
@@ -355,13 +366,15 @@
         
         // 游戏状态和变量
         let gameState = 'idle'; // idle, playing, gameOver
+        let playerName = 'player'; // 默认玩家昵称
         let player = {
             x: 0,
             y: 0,
             radius: 20,
             speed: 3,
             color: '#000',
-            isBlackCat: true
+            isBlackCat: true,
+            name: playerName
         };
         let enemies = [];
         let score = 0;
@@ -459,6 +472,7 @@
             player.x = 1000; // 放置在大地图中央
             player.y = 1000;
             player.radius = 10; // 增加初始体型，使玩家更容易看到
+            player.name = playerName; // 设置玩家昵称
             score = 0;
             enemies = [];
             food = [];
@@ -530,7 +544,8 @@
                         directionX: Math.random() * 2 - 1,
                         directionY: Math.random() * 2 - 1,
                         type: type,
-                        color: getEnemyColor(type)
+                        color: getEnemyColor(type),
+                        name: generateRandomName(type)
                     };
                     break;
                 }
@@ -549,7 +564,8 @@
                         directionX: Math.random() * 2 - 1,
                         directionY: Math.random() * 2 - 1,
                         type: type,
-                        color: getEnemyColor(type)
+                        color: getEnemyColor(type),
+                        name: generateRandomName(type)
                     };
                     break;
                 }
@@ -570,6 +586,30 @@
                 return '#FF69B4'; // 粉色
             }
             return '#000000'; // 默认黑色
+        }
+        
+        // 生成随机昵称
+        function generateRandomName(type) {
+            const dogNames = ['Rex', 'Max', 'Buddy', 'Rocky', 'Charlie', 'Cooper', 'Duke', 'Toby', 'Teddy', 'Bailey'];
+            const mouseNames = ['Jerry', 'Mickey', 'Speedy', 'Squeaky', 'Nibbles', 'Scamper', 'Twitch', 'Whiskers', 'Cheese', 'Peanut'];
+            const catNames = ['Felix', 'Tom', 'Garfield', 'Simba', 'Whiskers', 'Oliver', 'Luna', 'Bella', 'Chloe', 'Kitty'];
+            
+            let names;
+            switch(type) {
+                case 'dog':
+                    names = dogNames;
+                    break;
+                case 'mouse':
+                    names = mouseNames;
+                    break;
+                case 'cat':
+                    names = catNames;
+                    break;
+                default:
+                    names = ['Enemy'];
+            }
+            
+            return names[Math.floor(Math.random() * names.length)];
         }
 
         // 生成食物 - 确保食物不与任何现有球重叠，优化生成位置使食物更密集
@@ -688,6 +728,9 @@
                 if (Math.random() < 0.3) {
                     spawnFood();
                 }
+                
+                // 更新排行榜
+                updateLeaderboard();
             }
             
             animationId = requestAnimationFrame(gameLoop);
@@ -956,6 +999,87 @@
             }
         }
         
+        // 更新排行榜
+        function updateLeaderboard() {
+            if (!leaderboardList) return;
+            
+            // 收集所有角色的信息
+            let leaderboardData = [];
+            
+            // 添加玩家
+            leaderboardData.push({
+                name: player.name,
+                size: player.radius,
+                isPlayer: true,
+                color: player.color
+            });
+            
+            // 添加敌人
+            for (let i = 0; i < enemies.length; i++) {
+                leaderboardData.push({
+                    name: enemies[i].name,
+                    size: enemies[i].radius,
+                    isPlayer: false,
+                    color: enemies[i].color
+                });
+            }
+            
+            // 按照大小排序
+            leaderboardData.sort((a, b) => b.size - a.size);
+            
+            // 显示排行榜前10名
+            leaderboardList.innerHTML = '';
+            const maxEntries = Math.min(10, leaderboardData.length);
+            
+            for (let i = 0; i < maxEntries; i++) {
+                const entry = leaderboardData[i];
+                const entryElement = document.createElement('div');
+                entryElement.style.display = 'flex';
+                entryElement.style.alignItems = 'center';
+                entryElement.style.marginBottom = '1vh';
+                entryElement.style.padding = '0.5vh';
+                entryElement.style.borderRadius = '5px';
+                entryElement.style.background = i < 3 ? 'rgba(240, 240, 240, 0.7)' : 'transparent';
+                
+                // 排名
+                const rankElement = document.createElement('div');
+                rankElement.textContent = (i + 1) + '.';
+                rankElement.style.width = '2vw';
+                rankElement.style.fontWeight = 'bold';
+                rankElement.style.marginRight = '1vw';
+                
+                // 颜色指示器
+                const colorIndicator = document.createElement('div');
+                colorIndicator.style.width = '1vw';
+                colorIndicator.style.height = '1vw';
+                colorIndicator.style.borderRadius = '50%';
+                colorIndicator.style.backgroundColor = entry.color;
+                colorIndicator.style.marginRight = '1vw';
+                
+                // 名称和大小
+                const infoElement = document.createElement('div');
+                infoElement.style.flex = '1';
+                
+                const nameElement = document.createElement('span');
+                nameElement.textContent = entry.name;
+                nameElement.style.fontWeight = 'bold';
+                nameElement.style.color = entry.isPlayer ? 'blue' : 'black';
+                
+                const sizeElement = document.createElement('span');
+                sizeElement.textContent = ' - Size: ' + Math.round(entry.size);
+                sizeElement.style.marginLeft = '0.5vw';
+                
+                infoElement.appendChild(nameElement);
+                infoElement.appendChild(sizeElement);
+                
+                entryElement.appendChild(rankElement);
+                entryElement.appendChild(colorIndicator);
+                entryElement.appendChild(infoElement);
+                
+                leaderboardList.appendChild(entryElement);
+            }
+        }
+        
         // 游戏结束
         function gameOver() {
             gameState = 'gameOver';
@@ -1028,15 +1152,24 @@
                 
                 ctx.fillStyle = 'red';
                 ctx.beginPath();
+                // 箭头尖端
                 ctx.moveTo(arrowX, arrowY);
+                // 箭头左侧羽毛
                 ctx.lineTo(
                     arrowX - headLength * Math.cos(angle - headAngle),
                     arrowY - headLength * Math.sin(angle - headAngle)
                 );
+                // 箭头底部中点
+                const arrowBaseLength = player.radius * 0.2;
+                const baseX = arrowX - arrowBaseLength * Math.cos(angle);
+                const baseY = arrowY - arrowBaseLength * Math.sin(angle);
+                ctx.lineTo(baseX, baseY);
+                // 箭头右侧羽毛
                 ctx.lineTo(
                     arrowX - headLength * Math.cos(angle + headAngle),
                     arrowY - headLength * Math.sin(angle + headAngle)
                 );
+                // 闭合路径回到尖端
                 ctx.closePath();
                 ctx.fill();
             }
@@ -1249,6 +1382,9 @@
         
         // 开始游戏
         startBtn.addEventListener('click', () => {
+            // 获取玩家昵称，如果没有输入则使用默认值
+            playerName = playerNameInput.value.trim() || 'player';
+            
             gameContainer.classList.add('show');
             setupCanvas();
             
