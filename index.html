@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cat Underwork</title>
+    <title>A Hungry Black</title>
     <style>
         body {
             margin: 0;
@@ -206,7 +206,7 @@
 <body>
     <!-- Home Page -->
     <div class="startPage">
-        <h1 class="gameTitle">Cat Underwork</h1>
+        <h1 class="gameTitle">A Hungry Black</h1>
         <div style="margin-bottom: 3vh;">
             <label for="playerName" style="font-size: 1.5vw; display: block; margin-bottom: 1vh;">Enter your name:</label>
             <input type="text" id="playerName" placeholder="player" style="padding: 1vh 2vw; font-size: 1.5vw; border: 2px solid #000; border-radius: 5px; text-align: center;" maxlength="10">
@@ -228,7 +228,7 @@
                     <li><strong>Red Arrow:</strong> Indicates the direction your cat is moving</li>
                     <li><strong>Growing:</strong> Eat smaller enemies and food to increase your size</li>
                     <li><strong>Survival:</strong> Avoid enemies larger than you (10% bigger or more)</li>
-                    <li><strong>Goal:</strong> Become the biggest ball in the arena and dominate!</li>
+                    <li><strong>Goal:</strong> Grow your size until your diameter exceeds the map width (2000) to win the game!</li>
                 </ul>
                 
                 <h3 style="margin-top: 2vh;">Enemy Types</h3>
@@ -662,7 +662,7 @@
         }, { once: true });
         
         // 游戏状态和变量
-        let gameState = 'idle'; // idle, playing, gameOver
+        let gameState = 'idle'; // idle, playing, gameOver, gameWin
         let playerName = 'player'; // 默认玩家昵称
         let player = {
             x: 0,
@@ -1236,6 +1236,12 @@
         
         // 检测碰撞
         function checkCollisions() {
+            // 检查获胜条件：玩家直径大于地图宽度（2000）
+            if (player.radius > 1000) {
+                gameWin();
+                return;
+            }
+            
             // 1. 玩家吃食物
             for (let i = food.length - 1; i >= 0; i--) {
                 const dx = player.x - food[i].x;
@@ -1454,9 +1460,46 @@
             gameCanvas.addEventListener('click', restartGame);
         }
         
+        // 游戏获胜
+        function gameWin() {
+            gameState = 'gameWin';
+            
+            // 取消动画帧请求
+            if (animationId) {
+                cancelAnimationFrame(animationId);
+                animationId = null;
+            }
+            
+            // 保存当前状态
+            ctx.save();
+            
+            // 重置所有变换，确保游戏获胜界面显示在用户视觉中心
+            ctx.setTransform(1, 0, 0, 1, 0, 0);
+            
+            // 显示游戏获胜画面
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+            ctx.fillRect(0, 0, gameCanvas.width, gameCanvas.height);
+            
+            ctx.fillStyle = '#000';
+            ctx.font = '30px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('Congratulations! You Won!', gameCanvas.width / 2, gameCanvas.height / 2 - 40);
+            ctx.fillText('You have eaten everything!', gameCanvas.width / 2, gameCanvas.height / 2 - 10);
+            ctx.font = '20px Arial';
+            ctx.fillText('Final Score: ' + score, gameCanvas.width / 2, gameCanvas.height / 2 + 30);
+            ctx.fillText('Final Size: ' + Math.round(player.radius), gameCanvas.width / 2, gameCanvas.height / 2 + 60);
+            ctx.fillText('Click to play again', gameCanvas.width / 2, gameCanvas.height / 2 + 100);
+            
+            // 恢复之前的状态
+            ctx.restore();
+            
+            // 添加点击重新开始
+            gameCanvas.addEventListener('click', restartGame);
+        }
+        
         // 重新开始游戏
         function restartGame() {
-            if (gameState === 'gameOver') {
+            if (gameState === 'gameOver' || gameState === 'gameWin') {
                 gameCanvas.removeEventListener('click', restartGame);
                 resetGame();
                 gameLoop();
