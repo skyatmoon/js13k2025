@@ -263,6 +263,10 @@
                     <li>Watch out for enemies that suddenly change direction</li>
                     <li>Remember: Size matters! Even a slightly larger enemy can eat you</li>
                     <li>As you grow, your view will expand, helping you spot danger from farther away</li>
+                    <li>Eat <strong>mouse balls</strong> to gain a <strong>dash skill</strong> (⚡): Dash quickly in your current direction</li>
+                    <li>Eat <strong>dog balls</strong> to gain a <strong>roar skill</strong> (🚫): Create a red circle that stops enemies from moving for 3 seconds</li>
+                    <li>Eat <strong>cat balls</strong> to gain a <strong>double score skill</strong> (×2): Double your points for 5 seconds</li>
+                    <li>Activate skills by clicking the skill button at the bottom or pressing the space bar</li>
                 </ul>
             </div>
             <div class="gameCanvasContainer">
@@ -310,6 +314,154 @@
             } else {
                 leaderboardList.style.display = 'none';
                 toggleLeaderboard.textContent = 'Show';
+            }
+        });
+        
+        // 设置玩家技能
+        function setPlayerSkill(skillType) {
+            currentSkill = skillType;
+            skillActive = false;
+            skillCooldown = 0;
+            
+            // 更新技能按钮UI
+            updateSkillButton();
+        }
+        
+        // 更新技能按钮UI
+        function updateSkillButton() {
+            if (currentSkill) {
+                skillButton.style.opacity = '1';
+                skillButton.style.backgroundColor = '#000';
+                
+                // 设置技能图标
+                if (currentSkill === 'dash') {
+                    skillIcon.textContent = '⚡'; // 闪电图标
+                } else if (currentSkill === 'roar') {
+                    skillIcon.textContent = '🚫'; // 禁止标志
+                } else if (currentSkill === 'doubleScore') {
+                    skillIcon.textContent = '×2'; // 得分翻倍
+                }
+            } else {
+                skillButton.style.opacity = '0.3';
+                skillIcon.textContent = '?';
+            }
+        }
+        
+        // 激活技能
+        function activateSkill() {
+            if (!currentSkill || skillActive || gameState !== 'playing') {
+                return;
+            }
+            
+            skillActive = true;
+            
+            if (currentSkill === 'dash') {
+                // 冲刺技能：向当前移动方向冲刺一段距离
+                const dashDistance = player.radius * 8;
+                if (mouseDirection.x !== 0 || mouseDirection.y !== 0) {
+                    player.x += mouseDirection.x * dashDistance;
+                    player.y += mouseDirection.y * dashDistance;
+                } else {
+                    // 如果没有移动方向，默认向上冲刺
+                    player.y -= dashDistance;
+                }
+                
+                // 冲刺后清除技能
+                currentSkill = null;
+            } else if (currentSkill === 'roar') {
+                // 吼叫技能：生成持续3秒的红圈
+                roarEffectTimer = 3 * 60; // 3秒（60帧/秒）
+                
+                // 吼叫后清除技能
+                currentSkill = null;
+            } else if (currentSkill === 'doubleScore') {
+                // 得分翻倍技能：持续5秒
+                doubleScoreTimer = 5 * 60; // 5秒（60帧/秒）
+                
+                // 得分翻倍后清除技能
+                currentSkill = null;
+            }
+            
+            // 更新技能按钮
+            updateSkillButton();
+        }
+        
+        // 更新技能状态和计时器
+        function updateSkills() {
+            // 更新得分翻倍计时器
+            if (doubleScoreTimer > 0) {
+                doubleScoreTimer--;
+            }
+            
+            // 更新吼叫效果计时器
+            if (roarEffectTimer > 0) {
+                roarEffectTimer--;
+                
+                // 使圈内敌人不可移动
+                const roarRadius = player.radius * 3;
+                for (let i = 0; i < enemies.length; i++) {
+                    const e = enemies[i];
+                    const dx = player.x - e.x;
+                    const dy = player.y - e.y;
+                    const d = Math.sqrt(dx * dx + dy * dy);
+                    
+                    if (d < roarRadius) {
+                        // 保存敌人原始方向
+                        if (!e.originalDirection) {
+                            e.originalDirection = { x: e.directionX, y: e.directionY };
+                        }
+                        
+                        // 设置敌人方向为0，使其停止移动
+                        e.directionX = 0;
+                        e.directionY = 0;
+                    } else if (e.originalDirection) {
+                        // 恢复敌人原始方向
+                        e.directionX = e.originalDirection.x;
+                        e.directionY = e.originalDirection.y;
+                        e.originalDirection = null;
+                    }
+                }
+            } else if (roarEffectTimer === 0) {
+                // 吼叫效果结束，恢复所有敌人移动
+                for (let i = 0; i < enemies.length; i++) {
+                    if (enemies[i].originalDirection) {
+                        enemies[i].directionX = enemies[i].originalDirection.x;
+                        enemies[i].directionY = enemies[i].originalDirection.y;
+                        enemies[i].originalDirection = null;
+                    }
+                }
+            }
+        }
+        
+        // 绘制技能效果
+        function drawSkillEffect() {
+            // 绘制吼叫的红圈效果
+            if (roarEffectTimer > 0) {
+                const roarRadius = player.radius * 3;
+                ctx.strokeStyle = 'rgba(255, 0, 0, ' + (roarEffectTimer / 180) + ')';
+                ctx.lineWidth = player.radius * 0.2;
+                ctx.beginPath();
+                ctx.arc(player.x, player.y, roarRadius, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+            
+            // 绘制得分翻倍效果
+            if (doubleScoreTimer > 0) {
+                ctx.fillStyle = 'rgba(255, 215, 0, ' + (doubleScoreTimer / 300) + ')';
+                ctx.font = (player.radius * 0.8) + 'px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('×2', player.x, player.y - player.radius * 1.5);
+            }
+        }
+        
+        // 技能按钮点击事件
+        skillButton.addEventListener('click', activateSkill);
+        
+        // 键盘按键激活技能（空格键）
+        document.addEventListener('keydown', function(e) {
+            if (e.code === 'Space') {
+                activateSkill();
             }
         });
 
@@ -635,6 +787,16 @@
             food = [];
             gameState = 'playing';
             
+            // 重置技能相关变量
+            currentSkill = null;
+            skillActive = false;
+            skillCooldown = 0;
+            doubleScoreTimer = 0;
+            roarEffectTimer = 0;
+            
+            // 更新技能按钮UI
+            updateSkillButton();
+            
             // 创建初始敌人
             for (let i = 0; i < 15; i++) {
                 spawnEnemy();
@@ -859,7 +1021,9 @@
                 
                 // 更新和绘制玩家
                 updatePlayer();
+                updateSkills();
                 drawPlayer();
+                drawSkillEffect();
                 
                 // 更新和绘制敌人
                 updateEnemies();
@@ -1079,7 +1243,11 @@
                 const d = Math.sqrt(dx * dx + dy * dy);
                 if (d < player.radius) {
                     food.splice(i, 1);
-                    score++;
+                    if (doubleScoreTimer > 0) {
+                        score += 2; // 得分翻倍
+                    } else {
+                        score++;
+                    }
                     player.radius = Math.sqrt(player.radius * player.radius + 0.5);
                 }
             }
@@ -1107,7 +1275,12 @@
                 if (d < player.radius + e.radius) {
                     if (player.radius > e.radius * 1.1) {
                         enemies.splice(i, 1);
-                        score += Math.floor(e.radius * 2);
+                        const pointsEarned = Math.floor(e.radius * 2);
+                        if (doubleScoreTimer > 0) {
+                            score += pointsEarned * 2; // 得分翻倍
+                        } else {
+                            score += pointsEarned;
+                        }
                         player.radius = Math.sqrt(player.radius * player.radius + e.radius * e.radius * 0.5);
                         
                         // 授予技能
