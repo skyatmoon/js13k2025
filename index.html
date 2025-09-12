@@ -267,9 +267,16 @@
             </div>
             <div class="gameCanvasContainer">
                 <canvas id="gameCanvas"></canvas>
+                <!-- 技能按钮 -->
+                <button id="skillButton" style="position: absolute; bottom: 2vh; left: 50%; transform: translateX(-50%); background: #000; color: #fff; border: none; border-radius: 50%; width: 8vw; height: 8vw; font-size: 2vw; cursor: pointer; opacity: 0.3; transition: all 0.3s ease; display: flex; align-items: center; justify-content: center; z-index: 20;">
+                    <span id="skillIcon">?</span>
+                </button>
             </div>
             <div class="leaderboard" style="position: absolute; top: 2vh; right: 2vw; width: 20%; min-width: 15vw; padding: 2vw; background: rgba(255, 255, 255, 0.15); border-radius: 2vw; overflow-y: auto; box-shadow: 0 2vw 10vw rgba(0,0,0,0.1); z-index: 10; font-size: 1.2vw;">
-                <h3 style="font-size: 1.8vw; margin-top: 0; margin-bottom: 1.5vh; text-align: center;">Leaderboard</h3>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5vh;">
+                    <h3 style="font-size: 1.8vw; margin: 0;">Leaderboard</h3>
+                    <button id="toggleLeaderboard" style="background: #000; color: #fff; border: none; border-radius: 5px; padding: 0.5vh 1vw; cursor: pointer; font-size: 1vw;">Hide</button>
+                </div>
                 <div id="leaderboardList">
                     <!-- Leaderboard entries will be dynamically added here -->
                 </div>
@@ -288,7 +295,24 @@
         const backBtn = document.querySelector('.backButton');
         const gameCanvas = document.getElementById('gameCanvas');
         const leaderboardList = document.getElementById('leaderboardList');
+        const toggleLeaderboard = document.getElementById('toggleLeaderboard');
+        const leaderboardDiv = document.querySelector('.leaderboard');
+        const skillButton = document.getElementById('skillButton');
+        const skillIcon = document.getElementById('skillIcon');
         
+        // 排行榜显示/隐藏功能
+        let isLeaderboardVisible = true;
+        toggleLeaderboard.addEventListener('click', function() {
+            isLeaderboardVisible = !isLeaderboardVisible;
+            if (isLeaderboardVisible) {
+                leaderboardList.style.display = 'block';
+                toggleLeaderboard.textContent = 'Hide';
+            } else {
+                leaderboardList.style.display = 'none';
+                toggleLeaderboard.textContent = 'Show';
+            }
+        });
+
         // 创建鱼背景
         function createFishBg(container) {
             container.innerHTML = '';
@@ -364,6 +388,127 @@
             setupCanvas();
         });
         
+        // 初始化音频上下文
+        function initAudioContext() {
+            if (!audioContext) {
+                try {
+                    // 创建Web Audio API上下文
+                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                } catch (e) {
+                    console.log('Web Audio API not supported in this browser');
+                }
+            }
+        }
+        
+        // 创建并播放背景音乐
+        function createBackgroundMusic() {
+            if (!audioContext) {
+                initAudioContext();
+                if (!audioContext) return;
+            }
+            
+            // 如果音乐已经在播放，则停止
+            if (backgroundMusic) {
+                stopBackgroundMusic();
+            }
+            
+            // 创建主振荡器节点 - 用于持续的背景音乐
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            const filter = audioContext.createBiquadFilter();
+            
+            // 连接节点
+            oscillator.connect(filter);
+            filter.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            // 设置滤镜为低通滤波器，使声音更柔和
+            filter.type = 'lowpass';
+            filter.frequency.value = 1000;
+            
+            // 设置音量
+            gainNode.gain.value = 0.1; // 较低的音量，不会太吵
+            
+            // 创建简单的背景音乐模式
+            // 使用正弦波作为基础
+            oscillator.type = 'sine';
+            
+            // 简单的音符序列（C大调的几个音符）
+            const notes = [261.63, 293.66, 329.63, 349.23, 392.00, 440.00, 493.88, 523.25];
+            let noteIndex = 0;
+            
+            // 设置初始频率
+            oscillator.frequency.value = notes[noteIndex];
+            
+            // 创建定时器，每隔1秒切换一个音符
+            const noteInterval = setInterval(() => {
+                if (gameState !== 'playing' || !musicPlaying) {
+                    clearInterval(noteInterval);
+                    return;
+                }
+                
+                // 平滑过渡到下一个音符
+                noteIndex = (noteIndex + 1) % notes.length;
+                
+                // 使用线性RampToValueAtTime平滑过渡到下一个音符
+                oscillator.frequency.exponentialRampToValueAtTime(
+                    notes[noteIndex], 
+                    audioContext.currentTime + 0.5
+                );
+            }, 1000);
+            
+            // 启动振荡器
+            oscillator.start();
+            
+            // 存储音乐对象引用，以便稍后可以停止它
+            backgroundMusic = {
+                oscillator: oscillator,
+                gainNode: gainNode,
+                noteInterval: noteInterval
+            };
+            
+            musicPlaying = true;
+        }
+        
+        // 停止背景音乐
+        function stopBackgroundMusic() {
+            if (backgroundMusic) {
+                // 平滑降低音量后停止
+                if (backgroundMusic.gainNode) {
+                    backgroundMusic.gainNode.gain.exponentialRampToValueAtTime(
+                        0.001, 
+                        audioContext.currentTime + 0.5
+                    );
+                }
+                
+                // 清除音符间隔
+                if (backgroundMusic.noteInterval) {
+                    clearInterval(backgroundMusic.noteInterval);
+                }
+                
+                // 停止振荡器
+                if (backgroundMusic.oscillator) {
+                    setTimeout(() => {
+                        try {
+                            backgroundMusic.oscillator.stop();
+                        } catch (e) {
+                            // 忽略已停止的振荡器错误
+                        }
+                    }, 500);
+                }
+                
+                backgroundMusic = null;
+                musicPlaying = false;
+            }
+        }
+        
+        // 用户交互触发音频上下文恢复
+        document.addEventListener('click', () => {
+            if (audioContext && audioContext.state === 'suspended') {
+                audioContext.resume();
+            }
+        }, { once: true });
+        
         // 游戏状态和变量
         let gameState = 'idle'; // idle, playing, gameOver
         let playerName = 'player'; // 默认玩家昵称
@@ -376,6 +521,18 @@
             isBlackCat: true,
             name: playerName
         };
+        
+        // 背景音乐相关变量
+        let audioContext = null;
+        let musicPlaying = false;
+        let backgroundMusic = null;
+        
+        // 玩家技能相关变量
+        let currentSkill = null; // 当前技能类型: 'dash', 'roar', 'doubleScore'
+        let skillActive = false; // 技能是否正在激活状态
+        let skillCooldown = 0; // 技能冷却计时器
+        let doubleScoreTimer = 0; // 得分翻倍计时器
+        let roarEffectTimer = 0; // 吼叫效果计时器
         let enemies = [];
         let score = 0;
         let food = [];
@@ -952,6 +1109,15 @@
                         enemies.splice(i, 1);
                         score += Math.floor(e.radius * 2);
                         player.radius = Math.sqrt(player.radius * player.radius + e.radius * e.radius * 0.5);
+                        
+                        // 授予技能
+                        if (e.type === 'mouse') {
+                            setPlayerSkill('dash');
+                        } else if (e.type === 'dog') {
+                            setPlayerSkill('roar');
+                        } else if (e.type === 'cat') {
+                            setPlayerSkill('doubleScore');
+                        }
                     } else if (e.radius > player.radius * 1.1) {
                         gameOver();
                         return;
@@ -1417,6 +1583,9 @@
                 cancelAnimationFrame(animationId);
             }
             animationId = requestAnimationFrame(gameLoop);
+            
+            // 播放背景音乐
+            createBackgroundMusic();
         });
         
         // 返回首页
@@ -1429,6 +1598,9 @@
                 cancelAnimationFrame(animationId);
                 animationId = null;
             }
+            
+            // 停止背景音乐
+            stopBackgroundMusic();
         });
         
         // 清理函数 - 防止内存泄漏
@@ -1447,6 +1619,9 @@
                 cancelAnimationFrame(animationId);
                 animationId = null;
             }
+            
+            // 停止背景音乐
+            stopBackgroundMusic();
         }
     </script>
 </body>
