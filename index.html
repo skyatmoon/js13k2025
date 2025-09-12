@@ -220,11 +220,46 @@
             <div class="gameTutorial">
                 <h3>Game Tutorial</h3>
                 <ul>
-                    <li>Drag the mouse to control the black cat ball</li>
-                    <li>Eat smaller enemies to grow bigger</li>
-                    <li>Avoid bigger enemies to stay alive</li>
-                    <li>Enemies include dog balls, mouse balls, and cat balls</li>
-                    <li>The goal is to become the biggest ball in the arena!</li>
+                    <li><strong>Basic Controls:</strong> Drag the mouse to move the black cat in the direction you want to go</li>
+                    <li><strong>Touch Controls:</strong> Drag your finger across the screen on mobile devices</li>
+                    <li><strong>Red Arrow:</strong> Indicates the direction your cat is moving</li>
+                    <li><strong>Growing:</strong> Eat smaller enemies and food to increase your size</li>
+                    <li><strong>Survival:</strong> Avoid enemies larger than you (10% bigger or more)</li>
+                    <li><strong>Goal:</strong> Become the biggest ball in the arena and dominate!</li>
+                </ul>
+                
+                <h3 style="margin-top: 2vh;">Enemy Types</h3>
+                <div style="display: flex; flex-direction: column; gap: 1vh;">
+                    <div style="display: flex; align-items: center; gap: 1vw;">
+                        <div style="width: 1.5vw; height: 1.5vw; border-radius: 50%; background: #8B4513;"></div>
+                        <span style="font-size: 1.2vw;">Dog Balls (Brown)</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 1vw;">
+                        <div style="width: 1.5vw; height: 1.5vw; border-radius: 50%; background: #444444;"></div>
+                        <span style="font-size: 1.2vw;">Mouse Balls (Dark Gray)</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 1vw;">
+                        <div style="width: 1.5vw; height: 1.5vw; border-radius: 50%; background: #FF69B4;"></div>
+                        <span style="font-size: 1.2vw;">Cat Balls (Pink)</span>
+                    </div>
+                </div>
+                
+                <h3 style="margin-top: 2vh;">Predator-Prey Relationships</h3>
+                <ul>
+                    <li><strong>Black Cat (You)</strong> can eat: Smaller dog balls, mouse balls, and cat balls</li>
+                    <li><strong>Dog Balls</strong> will chase: Smaller mouse balls and cat balls</li>
+                    <li><strong>Mouse Balls</strong> will avoid: Larger dog balls and cat balls</li>
+                    <li><strong>Cat Balls</strong> will chase: Smaller mouse balls and dog balls</li>
+                    <li>All enemies will try to avoid being eaten by larger balls</li>
+                </ul>
+                
+                <h3 style="margin-top: 2vh;">Tips</h3>
+                <ul>
+                    <li>Start by eating small food items to grow safely</li>
+                    <li>Use the red arrow to confirm your movement direction</li>
+                    <li>Watch out for enemies that suddenly change direction</li>
+                    <li>Remember: Size matters! Even a slightly larger enemy can eat you</li>
+                    <li>As you grow, your view will expand, helping you spot danger from farther away</li>
                 </ul>
             </div>
             <div class="gameCanvasContainer">
@@ -495,7 +530,7 @@
                         directionX: Math.random() * 2 - 1,
                         directionY: Math.random() * 2 - 1,
                         type: type,
-                        color: type === 'dog' ? '#8B4513' : (type === 'mouse' ? '#A0522D' : '#FF69B4')
+                        color: getEnemyColor(type)
                     };
                     break;
                 }
@@ -514,7 +549,7 @@
                         directionX: Math.random() * 2 - 1,
                         directionY: Math.random() * 2 - 1,
                         type: type,
-                        color: type === 'dog' ? '#8B4513' : (type === 'mouse' ? '#A0522D' : '#FF69B4')
+                        color: getEnemyColor(type)
                     };
                     break;
                 }
@@ -525,6 +560,18 @@
             enemies.push(enemy);
         }
         
+        // 根据敌人类型获取颜色
+        function getEnemyColor(type) {
+            if (type === 'dog') {
+                return '#8B4513'; // 棕色
+            } else if (type === 'mouse') {
+                return '#444444'; // 深灰色
+            } else if (type === 'cat') {
+                return '#FF69B4'; // 粉色
+            }
+            return '#000000'; // 默认黑色
+        }
+
         // 生成食物 - 确保食物不与任何现有球重叠，优化生成位置使食物更密集
         function spawnFood() {
             const radius = Math.random() * 2 + 1;
@@ -652,7 +699,7 @@
             if (isMouseDown) {
                 // 动态速度：使用平方根函数实现更平滑的速度下降曲线
                 const speedFactor = Math.max(0, 30 - player.radius);
-                const dynamicSpeed = Math.max(1, Math.sqrt(speedFactor) * 1.2 + 1.5);
+                const dynamicSpeed = Math.max(1, Math.sqrt(speedFactor) * 0.8 + 1.0);
                 
                 // 根据鼠标方向移动玩家
                 player.x += mouseDirection.x * dynamicSpeed;
@@ -722,7 +769,7 @@
                 
                 // 移动敌人（动态速度）
                 const speedFactor = Math.max(0, 30 - e.radius);
-                const speed = Math.max(1, Math.sqrt(speedFactor) * 0.8 + 1);
+                const speed = Math.max(1, Math.sqrt(speedFactor) * 0.8 + 1.0);
                 e.x += e.directionX * speed;
                 e.y += e.directionY * speed;
                 
@@ -846,7 +893,7 @@
                     const d = Math.sqrt(dx * dx + dy * dy);
                     if (d < e.radius) {
                         food.splice(j, 1);
-                        e.radius = Math.sqrt(e.radius * e.radius + 0.2);
+                        e.radius = Math.sqrt(e.radius * e.radius + 0.5);
                     }
                 }
             }
