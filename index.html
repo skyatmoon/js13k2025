@@ -268,8 +268,8 @@
             <div class="gameCanvasContainer">
                 <canvas id="gameCanvas"></canvas>
             </div>
-            <div class="leaderboard" style="position: absolute; top: 20px; right: 20px; width: 280px; padding: 15px; background: rgba(255, 255, 255, 0.6); border-radius: 10px; overflow-y: auto; box-shadow: 0 4px 20px rgba(0,0,0,0.1); z-index: 10; font-size: 14px;">
-                <h3 style="font-size: 18px; margin-top: 0; margin-bottom: 15px; text-align: center;">Leaderboard</h3>
+            <div class="leaderboard" style="position: absolute; top: 2vh; right: 2vw; width: 20%; min-width: 15vw; padding: 2vw; background: rgba(255, 255, 255, 0.15); border-radius: 2vw; overflow-y: auto; box-shadow: 0 2vw 10vw rgba(0,0,0,0.1); z-index: 10; font-size: 1.2vw;">
+                <h3 style="font-size: 1.8vw; margin-top: 0; margin-bottom: 1.5vh; text-align: center;">Leaderboard</h3>
                 <div id="leaderboardList">
                     <!-- Leaderboard entries will be dynamically added here -->
                 </div>
@@ -1244,6 +1244,13 @@
             ctx.moveTo(player.x + player.radius * 0.4, player.y + player.radius * 0.15);
             ctx.lineTo(player.x + player.radius * 0.7, player.y + player.radius * 0.25);
             ctx.stroke();
+            
+            // 绘制玩家昵称
+             ctx.fillStyle = 'rgba(0, 0, 0, 0.7)'; // 半透明黑色
+             ctx.font = (player.radius * 0.4) + 'px Arial';
+             ctx.textAlign = 'center';
+             ctx.textBaseline = 'top';
+             ctx.fillText(player.name, player.x, player.y - player.radius - player.radius * 0.8);
         }
         
         // 绘制敌人
@@ -1357,6 +1364,13 @@
                 ctx.arc(enemy.x - enemy.radius * 0.4, enemy.y - enemy.radius * 0.2, pupilSize, 0, Math.PI * 2);
                 ctx.arc(enemy.x + enemy.radius * 0.4, enemy.y - enemy.radius * 0.2, pupilSize, 0, Math.PI * 2);
                 ctx.fill();
+                
+                // 绘制敌人昵称
+                 ctx.fillStyle = 'rgba(0, 0, 0, 0.7)'; // 半透明黑色
+                 ctx.font = (enemy.radius * 0.4) + 'px Arial';
+                 ctx.textAlign = 'center';
+                 ctx.textBaseline = 'top';
+                 ctx.fillText(enemy.name, enemy.x, enemy.y - enemy.radius - enemy.radius * 0.6);
             }
         }
         
