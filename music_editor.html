@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>优化钢琴 - 支持谱子记录</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            text-align: center;
+            background-color: #f0f0f0;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        h1 { color: #333; }
+        .controls {
+            margin: 20px 0;
+        }
+        input, button, textarea {
+            padding: 8px;
+            margin: 5px;
+            font-size: 16px;
+        }
+        #d { width: 60px; text-align: center; }
+        #p { 
+            width: 630px; 
+            height: 220px;
+            position: relative; 
+            margin: 20px auto;
+            background-color: #f9f9f9;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+        }
+        #p div { 
+            width: 30px; 
+            height: 200px; 
+            float: left; 
+            border: 1px solid #333;
+            border-radius: 0 0 5px 5px;
+            cursor: pointer;
+            background-color: white;
+            transition: all 0.1s;
+        }
+        #p div:hover { background-color: #e6e6e6; }
+        #p div.active { background-color: #4CAF50; }
+        #p div.s { 
+            background-color: #000; 
+            position: absolute;
+            height: 120px;
+            margin-top: 0;
+        }
+        #p div .solfege {
+            font-size: 12px;
+            color: #666;
+            display: block;
+            margin-top: 5px;
+        }
+        .score-section {
+            margin: 20px 0;
+        }
+        #score { 
+            width: 100%; 
+            height: 100px;
+            font-family: monospace;
+            resize: vertical;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+        }
+        .action-buttons { margin: 15px 0; }
+        .keyboard-help {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f5f5f5;
+            border-radius: 5px;
+            text-align: left;
+        }
+        .keyboard-help h3 { margin-top: 0; text-align: center; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>优化钢琴 - 支持谱子记录</h1>
+        
+        <div class="controls">
+            <div style="margin-bottom: 10px;">
+                <label for="noteDuration">音符长度：</label>
+                <input id="noteDuration" value="1" size="1" min="0.1" max="5" step="0.1" type="number"> 秒
+                <small>（影响音符音质和衰减）</small>
+            </div>
+            <div>
+                <label for="playbackSpeed">播放速度：</label>
+                <input id="playbackSpeed" value="120" min="10" max="300" step="5" type="range">
+                <span id="speedValue">120</span> BPM
+                <label style="margin-left: 20px;">
+                    <input type="checkbox" id="recordToggle" checked>
+                    自动记录
+                </label>
+            </div>
+        </div>
+        
+        <div id="p"></div>
+        
+        <div class="score-section">
+            <h3>弹奏谱子</h3>
+            <textarea id="score" placeholder="弹奏的音符将显示在这里..."></textarea>
+            
+            <div class="action-buttons">
+                <button onclick="clearScore()">清空谱子</button>
+                <button onclick="playScore()">播放谱子</button>
+                <button onclick="copyScore()">复制谱子</button>
+                <button onclick="downloadScore()">下载谱子</button>
+            </div>
+        </div>
+        
+        <div class="keyboard-help">
+            <h3>键盘快捷键</h3>
+            <p>使用键盘上的字母键 A-Z 对应不同的音符进行快速弹奏。</p>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let isRecording = true; // 默认开启记录
+        let currentScore = ''; // 当前谱子
+        let frequencyToNote = {}; // 频率到音符的映射
+        let noteToChar = {}; // 音符到字符的映射
+        let charToFrequency = {}; // 字符到频率的映射
+        
+        // Initialize mappings
+        function initMappings() {
+            // 创建36个音符的映射，使用36个唯一字符
+            const allChars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+            
+            for (let i = 0; i < 36; i++) {
+                const frequency = 130.81 * Math.pow(1.06, i);
+                const noteName = getNoteName(i);
+                const char = allChars[i]; // 使用a-z和0-9，确保每个音符有唯一字符
+                
+                frequencyToNote[frequency.toFixed(2)] = noteName;
+                noteToChar[noteName] = char;
+                charToFrequency[char] = frequency;
+            }
+        }
+        
+        // Get note name
+        function getNoteName(index) {
+            const notes = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+            const octave = Math.floor(index / 12) + 3; // 从C3开始
+            const noteIndex = index % 12;
+            return notes[noteIndex] + octave;
+        }
+        
+        // Get solfège names
+        function getSolfège(index) {
+            const solfège = ['Do', 'Do#', 'Re', 'Re#', 'Mi', 'Fa', 'Fa#', 'Sol', 'Sol#', 'La', 'La#', 'Si'];
+            const solfègeShort = ['1', '#1', '2', '#2', '3', '4', '#4', '5', '#5', '6', '#6', '7'];
+            const noteIndex = index % 12;
+            
+            return {
+                full: solfège[noteIndex],
+                short: solfègeShort[noteIndex]
+            };
+        }
+        
+        // Optimized piano sound playback function
+        // Time parameter only affects note duration and tone quality, not playback speed
+        play = (frequency, time) => {
+            // Record the note
+            if (isRecording) {
+                const freqKey = frequency.toFixed(2);
+                const noteName = frequencyToNote[freqKey];
+                const char = noteToChar[noteName];
+                if (char) {
+                    currentScore += char;
+                    document.getElementById('score').value = currentScore;
+                }
+            }
+            
+            // Original high-quality piano tone generation code
+            b = (i,s,f,x) => Math.sin((6.28)*(i/s)*f+x);
+            w = (i,frequency) => Math.sin(6.28*((i/44100)*frequency)+b(i,44100,frequency,0)**2+(.75*b(i,44100,frequency,.25))+(.1*b(i,44100,frequency,.5)));
+            D = [];
+            for (i = 0; i < 44100 * time; i++){
+                D[i] = i < 88
+                     ? (i / (44100 * .002)) * w(i,frequency)
+                     : (1-((i-(44100*.002))/(44100*(time-.002))))**((.5*Math.log((frequency*1e4)/44100))**2) * w(i,frequency);
+            }
+            A=new AudioContext();
+            m=A.createBuffer(1,1e6,44100);
+            m.getChannelData(0).set(D);
+            s=A.createBufferSource();
+            s.buffer=m;
+            s.connect(A.destination);
+            s.start();
+        }
+        
+        // Play the score
+        function playScore() {
+            const score = document.getElementById('score').value;
+            const noteDuration = parseFloat(document.getElementById('noteDuration').value); // 影响音质
+            const bpm = parseInt(document.getElementById('playbackSpeed').value); // 影响播放速度
+            const beatDuration = 60 / bpm; // 每个节拍的持续时间（秒）
+            
+            if (!score) {
+                alert('请先弹奏一些音符或输入谱子！');
+                return;
+            }
+            
+            // 临时关闭自动记录
+            const wasRecording = isRecording;
+            isRecording = false;
+            
+            // 逐个播放音符
+            for (let i = 0; i < score.length; i++) {
+                const char = score[i];
+                const frequency = charToFrequency[char];
+                
+                if (frequency) {
+                    // 设置延时播放每个音符 - 使用bpm计算时间间隔
+                    setTimeout(() => {
+                        play(frequency, noteDuration); // 音质由noteDuration决定
+                    }, i * beatDuration * 1000); // 速度由bpm决定
+                }
+            }
+            
+            // 播放完成后恢复记录状态
+            setTimeout(() => {
+                isRecording = wasRecording;
+            }, score.length * beatDuration * 1000);
+        }
+        
+        // Clear the score
+        function clearScore() {
+            currentScore = '';
+            document.getElementById('score').value = '';
+        }
+        
+        // Convert character score to index.html compatible format
+        function convertToGameFormat(score) {
+            const noteDuration = parseFloat(document.getElementById('noteDuration').value);
+            const notesArray = [];
+            
+            for (let i = 0; i < score.length; i++) {
+                const char = score[i];
+                const frequency = charToFrequency[char];
+                
+                if (frequency) {
+                    // 找到对应的音符名称
+                    let noteName = '';
+                    for (const [freq, note] of Object.entries(frequencyToNote)) {
+                        if (Math.abs(parseFloat(freq) - frequency) < 0.1) {
+                            noteName = note;
+                            break;
+                        }
+                    }
+                    
+                    // 转换音符格式（去掉八度信息，如C4 -> c, C#4 -> c#）
+                    if (noteName) {
+                        let gameNoteFormat = '';
+                        if (noteName.includes('#')) {
+                            // 带升号的音符
+                            const parts = noteName.split('#');
+                            gameNoteFormat = parts[0].toLowerCase() + '#' + parts[1].substring(1);
+                        } else {
+                            // 不带升号的音符
+                            gameNoteFormat = noteName[0].toLowerCase() + noteName.substring(1);
+                        }
+                        
+                        // 添加到数组
+                        notesArray.push({ note: gameNoteFormat, duration: noteDuration });
+                    }
+                }
+            }
+            
+            // 创建完整的游戏音乐格式
+            const gameFormat = {
+                main: notesArray,
+                harmony: [] // 和声部分为空，用户可以自行添加
+            };
+            
+            return JSON.stringify(gameFormat, null, 2);
+        }
+
+        // Copy score to clipboard - supports two formats
+        function copyScore() {
+            const score = document.getElementById('score').value;
+            
+            if (!score) {
+                alert('没有可复制的谱子！');
+                return;
+            }
+            
+            const format = prompt('请选择复制格式：\n1. 字符格式 (abcdefg...)\n2. 游戏格式 (JSON对象)\n\n请输入1或2:', '1');
+            
+            let textToCopy = '';
+            if (format === '2') {
+                textToCopy = convertToGameFormat(score);
+            } else {
+                textToCopy = score;
+            }
+            
+            navigator.clipboard.writeText(textToCopy).then(() => {
+                alert(format === '2' ? '游戏格式谱子已复制到剪贴板！\n可以直接粘贴到index.html的gameMelodies对象中' : '字符格式谱子已复制到剪贴板！');
+            }).catch(err => {
+                alert('复制失败，请手动复制！');
+                console.error('复制失败:', err);
+            });
+        }
+        
+        // Download score as text file - supports two formats
+        function downloadScore() {
+            const score = document.getElementById('score').value;
+            
+            if (!score) {
+                alert('没有可下载的谱子！');
+                return;
+            }
+            
+            const format = prompt('请选择下载格式：\n1. 字符格式 (abcdefg...)\n2. 游戏格式 (JSON对象)\n\n请输入1或2:', '1');
+            
+            let content = '';
+            let fileName = 'piano_score_' + new Date().toISOString().slice(0,19).replace(/:/g,'-');
+            
+            if (format === '2') {
+                content = convertToGameFormat(score);
+                fileName += '_game_format.json';
+            } else {
+                content = score;
+                fileName += '.txt';
+            }
+            
+            const blob = new Blob([content], { type: format === '2' ? 'application/json' : 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = fileName;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+        
+        // Toggle recording state
+        document.getElementById('recordToggle').addEventListener('change', function() {
+            isRecording = this.checked;
+        });
+        
+        // Allow playing via keyboard
+        document.addEventListener('keydown', function(e) {
+            // 只处理字母键
+            if (e.key.length === 1 && e.key.match(/[a-z]/i)) {
+                const char = e.key.toLowerCase();
+                const frequency = charToFrequency[char];
+                
+                if (frequency) {
+                    e.preventDefault();
+                    const noteDuration = parseFloat(document.getElementById('noteDuration').value);
+                    play(frequency, noteDuration);
+                }
+            }
+        });
+        
+        // Update speed display
+        document.getElementById('playbackSpeed').addEventListener('input', function() {
+            document.getElementById('speedValue').textContent = this.value;
+        });
+        
+        // Initialize mappings and piano keyboard
+        initMappings();
+        
+        // Create piano keyboard
+        for(i=0;i<36;i++) {
+            f=130.81*Math.pow(1.06,i);
+            const freqKey = f.toFixed(2);
+            const noteName = frequencyToNote[freqKey];
+            const char = noteToChar[noteName];
+            const solfège = getSolfège(i);
+            
+            if([1,3,6,8,10].includes(i%12)) {
+                // 黑键
+                p.innerHTML += '<div class="s" title="' + noteName + ' (' + char.toUpperCase() + ')\n' + 
+                               solfège.full + ' (' + solfège.short + ')\n' +
+                               '频率: ' + freqKey + 'Hz" style="left:' + (i/2*35-6) + 'px" onclick="play(' + f + ',document.getElementById(\'noteDuration\').value)" data-note="' + noteName + '" data-solfege="' + solfège.full + '"></div>';
+            } else {
+                // 白键
+                p.innerHTML += '<div title="' + noteName + ' (' + char.toUpperCase() + ')\n' + 
+                               solfège.full + ' (' + solfège.short + ')\n' +
+                               '频率: ' + freqKey + 'Hz" onclick="play(' + f + ',document.getElementById(\'noteDuration\').value)" data-note="' + noteName + '" data-solfege="' + solfège.full + '">' + 
+                               noteName[0] + '<br><span class="solfege">' + solfège.short + '</span></div>';
+            }
+        }
+    </script>
+</body>
+</html>

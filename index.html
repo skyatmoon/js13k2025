@@ -219,6 +219,7 @@
     <div class="gameContainer">
         <div class="fishBackground"></div>
         <button class="backButton">Back Home</button>
+        <button id="musicToggle" style="position: absolute; top: 2vh; left: 22vw; padding: 1.5vh 2vw; font-size: 2vw; background: #000; color: #fff; border: none; border-radius: 5px; cursor: pointer; transition: all 0.3s ease; z-index: 10;">🔊</button>
         <div class="gameContent">
             <div class="gameTutorial">
                 <h3>Game Tutorial</h3>
@@ -289,7 +290,7 @@
     </div>
     
     <script>
-        // 获取DOM元素
+        // Get DOM elements
         const startFishBg = document.querySelector('.startPage .fishBackground');
         const gameFishBg = document.querySelector('.gameContainer .fishBackground');
         const startPg = document.querySelector('.startPage');
@@ -304,7 +305,7 @@
         const skillButton = document.getElementById('skillButton');
         const skillIcon = document.getElementById('skillIcon');
         
-        // 排行榜显示/隐藏功能
+        // Leaderboard show/hide
         let isLeaderboardVisible = true;
         toggleLeaderboard.addEventListener('click', function() {
             isLeaderboardVisible = !isLeaderboardVisible;
@@ -317,29 +318,29 @@
             }
         });
         
-        // 设置玩家技能
+        // Set player skill
         function setPlayerSkill(skillType) {
             currentSkill = skillType;
             skillActive = false;
             skillCooldown = 0;
             
-            // 更新技能按钮UI
+            // Update skill button UI
             updateSkillButton();
         }
         
-        // 更新技能按钮UI
+        // Update skill buttonUI
         function updateSkillButton() {
             if (currentSkill) {
                 skillButton.style.opacity = '1';
                 skillButton.style.backgroundColor = '#000';
                 
-                // 设置技能图标
+                // Set skill icon
                 if (currentSkill === 'dash') {
-                    skillIcon.textContent = '⚡'; // 闪电图标
+                    skillIcon.textContent = '⚡'; // Lightning icon
                 } else if (currentSkill === 'roar') {
-                    skillIcon.textContent = '🚫'; // 禁止标志
+                    skillIcon.textContent = '🚫'; // Stop sign
                 } else if (currentSkill === 'doubleScore') {
-                    skillIcon.textContent = '×2'; // 得分翻倍
+                    skillIcon.textContent = '×2'; // Double score
                 }
             } else {
                 skillButton.style.opacity = '0.3';
@@ -347,7 +348,7 @@
             }
         }
         
-        // 激活技能
+        // Activate skill
         function activateSkill() {
             if (!currentSkill || skillActive || gameState !== 'playing') {
                 return;
@@ -356,29 +357,29 @@
             skillActive = true;
             
             if (currentSkill === 'dash') {
-                // 冲刺技能：向当前移动方向冲刺一段距离
+                // Dash skill: sprint in current direction
                 const dashDistance = player.radius * 8;
                 if (mouseDirection.x !== 0 || mouseDirection.y !== 0) {
                     player.x += mouseDirection.x * dashDistance;
                     player.y += mouseDirection.y * dashDistance;
                 } else {
-                    // 如果没有移动方向，默认向上冲刺
+                    // Default to up if no direction
                     player.y -= dashDistance;
                 }
                 
-                // 冲刺后清除技能
+                // Clear skill after dash
                 currentSkill = null;
             } else if (currentSkill === 'roar') {
-                // 吼叫技能：生成持续3秒的红圈
-                roarEffectTimer = 3 * 60; // 3秒（60帧/秒）
+                // Roar skill: create 3s red circle
+                roarEffectTimer = 3 * 60; // 3s (60fps)
                 
-                // 吼叫后清除技能
+                // Clear skill after roar
                 currentSkill = null;
             } else if (currentSkill === 'doubleScore') {
-                // 得分翻倍技能：持续5秒
-                doubleScoreTimer = 5 * 60; // 5秒（60帧/秒）
+                // Double score skill: lasts 5s
+                doubleScoreTimer = 5 * 60; // 5s (60fps)
                 
-                // 得分翻倍后清除技能
+                // Clear skill after double score
                 currentSkill = null;
             }
             
@@ -386,19 +387,19 @@
             updateSkillButton();
         }
         
-        // 更新技能状态和计时器
+        // Update skill status & timers
         function updateSkills() {
-            // 更新得分翻倍计时器
+            // Update double score timer
             if (doubleScoreTimer > 0) {
                 doubleScoreTimer--;
             }
             
-            // 更新吼叫效果计时器
+            // Update roar effect timer
             if (roarEffectTimer > 0) {
                 roarEffectTimer--;
                 
-                // 使圈内敌人不可移动
-                const roarRadius = player.radius * 3;
+                // Freeze enemies in roar circle
+                const roarRadius = player.radius * 5;
                 for (let i = 0; i < enemies.length; i++) {
                     const e = enemies[i];
                     const dx = player.x - e.x;
@@ -406,23 +407,23 @@
                     const d = Math.sqrt(dx * dx + dy * dy);
                     
                     if (d < roarRadius) {
-                        // 保存敌人原始方向
+                        // Save enemy's original direction
                         if (!e.originalDirection) {
                             e.originalDirection = { x: e.directionX, y: e.directionY };
                         }
                         
-                        // 设置敌人方向为0，使其停止移动
+                        // Stop enemy movement
                         e.directionX = 0;
                         e.directionY = 0;
                     } else if (e.originalDirection) {
-                        // 恢复敌人原始方向
+                        // Restore enemy's original direction
                         e.directionX = e.originalDirection.x;
                         e.directionY = e.originalDirection.y;
                         e.originalDirection = null;
                     }
                 }
             } else if (roarEffectTimer === 0) {
-                // 吼叫效果结束，恢复所有敌人移动
+                // End of roar effect, unfreeze all enemies
                 for (let i = 0; i < enemies.length; i++) {
                     if (enemies[i].originalDirection) {
                         enemies[i].directionX = enemies[i].originalDirection.x;
@@ -433,11 +434,11 @@
             }
         }
         
-        // 绘制技能效果
+        // Draw skill effects
         function drawSkillEffect() {
-            // 绘制吼叫的红圈效果
+            // Draw roar's red circle effect
             if (roarEffectTimer > 0) {
-                const roarRadius = player.radius * 3;
+                const roarRadius = player.radius * 5;
                 ctx.strokeStyle = 'rgba(255, 0, 0, ' + (roarEffectTimer / 180) + ')';
                 ctx.lineWidth = player.radius * 0.2;
                 ctx.beginPath();
@@ -445,7 +446,7 @@
                 ctx.stroke();
             }
             
-            // 绘制得分翻倍效果
+            // Draw double score effect
             if (doubleScoreTimer > 0) {
                 ctx.fillStyle = 'rgba(255, 215, 0, ' + (doubleScoreTimer / 300) + ')';
                 ctx.font = (player.radius * 0.8) + 'px Arial';
@@ -455,20 +456,20 @@
             }
         }
         
-        // 技能按钮点击事件
+        // Skill button click event
         skillButton.addEventListener('click', activateSkill);
         
-        // 键盘按键激活技能（空格键）
+        // Keyboard skill activation (spacebar)
         document.addEventListener('keydown', function(e) {
             if (e.code === 'Space') {
                 activateSkill();
             }
         });
 
-        // 创建鱼背景
+        // Create fish background
         function createFishBg(container) {
             container.innerHTML = '';
-            const fishCount = Math.floor(Math.random() * 6) + 10; // 10-15条鱼
+            const fishCount = Math.floor(Math.random() * 6) + 10; // 10-15 fish
             for (let i = 0; i < fishCount; i++) {
                 const fish = document.createElement('div');
                 fish.classList.add('fish');
@@ -482,7 +483,7 @@
             }
         }
         
-        // 鱼动画
+        // Fish animation
         function animateFish(fish) {
             let x = parseFloat(fish.style.left);
             let y = parseFloat(fish.style.top);
@@ -519,10 +520,10 @@
             move();
         }
         
-        // 初始化鱼背景
+        // Init fish background
         createFishBg(startFishBg);
         
-        // 设置Canvas尺寸
+        // Set canvas size
         function setupCanvas() {
             const container = document.querySelector('.gameCanvasContainer');
             const rect = container.getBoundingClientRect();
@@ -535,135 +536,476 @@
             gameCanvas.style.height = rect.height + 'px';
         }
         
-        // 窗口大小调整事件
+        // Window resize event
         window.addEventListener('resize', () => {
             setupCanvas();
         });
         
-        // 初始化音频上下文
+        // Init audio context
         function initAudioContext() {
             if (!audioContext) {
                 try {
-                    // 创建Web Audio API上下文
+                    // Create Web Audio API context
                     audioContext = new (window.AudioContext || window.webkitAudioContext)();
                 } catch (e) {
                     console.log('Web Audio API not supported in this browser');
                 }
             }
         }
-        
-        // 创建并播放背景音乐
+
+        // Optimized piano tone generator - same as music_editor.html
+        // Composite sine waves for richer tone
+        function generatePianoTone(frequency, duration) {
+            // Note sample data generator
+            const b = (i, s, f, x) => Math.sin((6.28) * (i / s) * f + x);
+            const w = (i, freq) => Math.sin(6.28 * ((i / 44100) * freq) + b(i, 44100, freq, 0) ** 2 + (.75 * b(i, 44100, freq, .25)) + (.1 * b(i, 44100, freq, .5)));
+            
+            const data = [];
+            const sampleRate = 44100;
+            const totalSamples = Math.floor(sampleRate * duration);
+            
+            for (let i = 0; i < totalSamples; i++) {
+                if (i < 88) {
+                    // Attack phase
+                    data[i] = (i / (sampleRate * .002)) * w(i, frequency);
+                } else {
+                    // Decay, sustain, release phase - freq-based decay curve
+                    data[i] = (1 - ((i - (sampleRate * .002)) / (sampleRate * (duration - .002)))) ** ((.5 * Math.log((frequency * 1e4) / 44100)) ** 2) * w(i, frequency);
+                }
+            }
+            
+            // Create and configure audio buffer
+            const buffer = audioContext.createBuffer(1, totalSamples, sampleRate);
+            const channelData = buffer.getChannelData(0);
+            
+            // Copy data to audio buffer
+            for (let i = 0; i < totalSamples; i++) {
+                channelData[i] = data[i];
+            }
+            
+            return buffer;
+        }
+
+        // Play single note function
+        function playNote(frequency, duration) {
+            if (!audioContext) return;
+            
+            const buffer = generatePianoTone(frequency, duration);
+            const source = audioContext.createBufferSource();
+            const gainNode = audioContext.createGain();
+            
+            source.buffer = buffer;
+            source.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            gainNode.gain.value = 0.1; // Control volume
+            
+            source.start();
+            
+            // Store reference for later management
+            if (!backgroundMusic.activeNotes) {
+                backgroundMusic.activeNotes = [];
+            }
+            backgroundMusic.activeNotes.push(source);
+            
+            // Clean up finished notes
+            source.onended = function() {
+                const index = backgroundMusic.activeNotes.indexOf(source);
+                if (index > -1) {
+                    backgroundMusic.activeNotes.splice(index, 1);
+                }
+            };
+        }
+
+        // Note to frequency mapping
+        const noteToFrequency = {
+            'c': 261.63,
+            'c#': 277.18,
+            'd': 293.66,
+            'd#': 311.13,
+            'e': 329.63,
+            'f': 349.23,
+            'f#': 369.99,
+            'g': 392.00,
+            'g#': 415.30,
+            'a': 440.00,
+            'a#': 466.16,
+            'b': 493.88,
+            'c5': 523.25,
+            'c#5': 554.37,
+            'd5': 587.33,
+            'd#5': 622.25,
+            'e5': 659.25,
+            'f5': 698.46,
+            'f#5': 739.99,
+            'g5': 783.99,
+            'g#5': 830.61,
+            'a5': 880.00,
+            'a#5': 932.33,
+            'b5': 987.77
+        };
+
+        // Users can fill their own score here
+        // TODO: Users can customize game BGM here
+        const gameMelodies = {
+            // Main game BGM score - users can replace
+            main: [
+                // First measure
+                    {
+      "note": "d3",
+      "duration": 1.5
+    },
+    {
+      "note": "d3",
+      "duration": 1.5
+    },
+    {
+      "note": "e3",
+      "duration": 1.5
+    },
+    {
+      "note": "f3",
+      "duration": 1.5
+    },
+    {
+      "note": "f3",
+      "duration": 1.5
+    },
+    {
+      "note": "g3",
+      "duration": 1.5
+    },
+    {
+      "note": "a3",
+      "duration": 1.5
+    },
+    {
+      "note": "g3",
+      "duration": 1.5
+    },
+    {
+      "note": "a3",
+      "duration": 1.5
+    },
+    {
+      "note": "f3",
+      "duration": 1.5
+    },
+    {
+      "note": "e3",
+      "duration": 1.5
+    },
+    {
+      "note": "f3",
+      "duration": 1.5
+    },
+    {
+      "note": "e3",
+      "duration": 1.5
+    },
+    {
+      "note": "d3",
+      "duration": 1.5
+    },
+    {
+      "note": "d3",
+      "duration": 1.5
+    },
+    {
+      "note": "e3",
+      "duration": 1.5
+    },
+    {
+      "note": "f3",
+      "duration": 1.5
+    },
+    {
+      "note": "a3",
+      "duration": 1.5
+    },
+    {
+      "note": "c4",
+      "duration": 1.5
+    },
+    {
+      "note": "d4",
+      "duration": 1.5
+    },
+    {
+      "note": "e4",
+      "duration": 1.5
+    },
+    {
+      "note": "c4",
+      "duration": 1.5
+    },
+    {
+      "note": "b3",
+      "duration": 1.5
+    },
+    {
+      "note": "c4",
+      "duration": 1.5
+    },
+    {
+      "note": "b3",
+      "duration": 1.5
+    },
+    {
+      "note": "a3",
+      "duration": 1.5
+    },
+    {
+      "note": "a3",
+      "duration": 1.5
+    },
+    {
+      "note": "c4",
+      "duration": 1.5
+    },
+    {
+      "note": "d4",
+      "duration": 1.5
+    },
+    {
+      "note": "e4",
+      "duration": 1.5
+    },
+    {
+      "note": "c4",
+      "duration": 1.5
+    },
+    {
+      "note": "b3",
+      "duration": 1.5
+    },
+    {
+      "note": "a3",
+      "duration": 1.5
+    },
+    {
+      "note": "g3",
+      "duration": 1.5
+    },
+    {
+      "note": "a3",
+      "duration": 1.5
+    },
+    {
+      "note": "d3",
+      "duration": 1.5
+    },
+    {
+      "note": "a3",
+      "duration": 1.5
+    },
+    {
+      "note": "g3",
+      "duration": 1.5
+    },
+    {
+      "note": "f3",
+      "duration": 1.5
+    },
+    {
+      "note": "e3",
+      "duration": 1.5
+    },
+    {
+      "note": "d3",
+      "duration": 1.5
+    },
+    {
+      "note": "g3",
+      "duration": 1.5
+    },
+    {
+      "note": "a3",
+      "duration": 1.5
+    },
+    {
+      "note": "g3",
+      "duration": 1.5
+    },
+    {
+      "note": "g3",
+      "duration": 1.5
+    },
+    {
+      "note": "f3",
+      "duration": 1.5
+    },
+    {
+      "note": "e3",
+      "duration": 1.5
+    },
+    {
+      "note": "f3",
+      "duration": 1.5
+    },
+    {
+      "note": "e3",
+      "duration": 1.5
+    },
+    {
+      "note": "d3",
+      "duration": 1.5
+    },
+                { rest: true, duration: 2 }, // Rest note
+                // Users can add more notes here...
+            ],
+            
+            // Harmony part - users can replace
+            harmony: [
+                // 用户可以在这里继续添加更多音符...
+            ]
+        };
+
+        // Create and play background music (optimized piano tone)
         function createBackgroundMusic() {
             if (!audioContext) {
                 initAudioContext();
                 if (!audioContext) return;
             }
             
-            // 如果音乐已经在播放，则停止
+            // Stop if music is already playing
             if (backgroundMusic) {
                 stopBackgroundMusic();
             }
             
-            // 创建主振荡器节点 - 用于持续的背景音乐
-            const oscillator = audioContext.createOscillator();
-            const gainNode = audioContext.createGain();
-            const filter = audioContext.createBiquadFilter();
-            
-            // 连接节点
-            oscillator.connect(filter);
-            filter.connect(gainNode);
-            gainNode.connect(audioContext.destination);
-            
-            // 设置滤镜为低通滤波器，使声音更柔和
-            filter.type = 'lowpass';
-            filter.frequency.value = 1000;
-            
-            // 设置音量
-            gainNode.gain.value = 0.1; // 较低的音量，不会太吵
-            
-            // 创建简单的背景音乐模式
-            // 使用正弦波作为基础
-            oscillator.type = 'sine';
-            
-            // 简单的音符序列（C大调的几个音符）
-            const notes = [261.63, 293.66, 329.63, 349.23, 392.00, 440.00, 493.88, 523.25];
-            let noteIndex = 0;
-            
-            // 设置初始频率
-            oscillator.frequency.value = notes[noteIndex];
-            
-            // 创建定时器，每隔1秒切换一个音符
-            const noteInterval = setInterval(() => {
-                if (gameState !== 'playing' || !musicPlaying) {
-                    clearInterval(noteInterval);
-                    return;
-                }
-                
-                // 平滑过渡到下一个音符
-                noteIndex = (noteIndex + 1) % notes.length;
-                
-                // 使用线性RampToValueAtTime平滑过渡到下一个音符
-                oscillator.frequency.exponentialRampToValueAtTime(
-                    notes[noteIndex], 
-                    audioContext.currentTime + 0.5
-                );
-            }, 1000);
-            
-            // 启动振荡器
-            oscillator.start();
-            
-            // 存储音乐对象引用，以便稍后可以停止它
+            // Init background music object
             backgroundMusic = {
-                oscillator: oscillator,
-                gainNode: gainNode,
-                noteInterval: noteInterval
+                activeNotes: [],
+                intervals: []
             };
+            
+            // Play melody sequence function
+            function playMelodySequence(melody, delay = 0, bpm = 180) {
+                let noteIndex = 0;
+                const beatDuration = 60 / bpm; // Duration per beat (seconds)
+                
+                // Delay before starting playback
+                setTimeout(() => {
+                    const noteInterval = setInterval(() => {
+                        if (gameState !== 'playing' || !musicPlaying) {
+                            clearInterval(noteInterval);
+                            return;
+                        }
+                        
+                        if (noteIndex >= melody.length) {
+                            noteIndex = 0; // Loop playback
+                        }
+                        
+                        const noteInfo = melody[noteIndex];
+                        if (noteInfo.rest) {
+                            // Rest note, play nothing
+                        } else if (noteInfo.note) {
+                            // Handle note format with numbers (e.g., d3, e3)
+                            let noteKey = noteInfo.note;
+                            let octave = 4; // Default octave 4
+                            
+                            // Extract note name and octave number
+                            const match = noteKey.match(/^([a-g]#?)(\d+)$/i);
+                            if (match) {
+                                noteKey = match[1].toLowerCase();
+                                octave = parseInt(match[2]);
+                            }
+                            
+                            // Find corresponding base frequency
+                            if (noteToFrequency[noteKey]) {
+                                let frequency = noteToFrequency[noteKey];
+                                
+                                // Adjust frequency based on octave
+                                // C4 is middle C, base frequencies in noteToFrequency are C4 and C5
+                                if (octave < 4) {
+                                    // Lower frequency
+                                    for (let i = 0; i < 4 - octave; i++) {
+                                        frequency /= 2;
+                                    }
+                                } else if (octave > 5) {
+                                    // Raise frequency
+                                    for (let i = 0; i < octave - 5; i++) {
+                                        frequency *= 2;
+                                    }
+                                }
+                                
+                                playNote(frequency, noteInfo.duration);
+                            }
+                        }
+                        
+                        noteIndex++;
+                    }, beatDuration * 1000);
+                    
+                    backgroundMusic.intervals.push(noteInterval);
+                }, delay);
+            }
+            
+            // Start melody playback
+            playMelodySequence(gameMelodies.main, 0, 120);
+            playMelodySequence(gameMelodies.harmony, 0.5 * 1000, 120); // Harmony starts half beat later
             
             musicPlaying = true;
         }
         
-        // 停止背景音乐
-        function stopBackgroundMusic() {
+        // Stop background music
+        function stopBackgroundMusic(updatePlayingState = true) {
             if (backgroundMusic) {
-                // 平滑降低音量后停止
-                if (backgroundMusic.gainNode) {
-                    backgroundMusic.gainNode.gain.exponentialRampToValueAtTime(
-                        0.001, 
-                        audioContext.currentTime + 0.5
-                    );
+                // Clear all playback intervals
+                if (backgroundMusic.intervals && Array.isArray(backgroundMusic.intervals)) {
+                    backgroundMusic.intervals.forEach(interval => clearInterval(interval));
                 }
                 
-                // 清除音符间隔
-                if (backgroundMusic.noteInterval) {
-                    clearInterval(backgroundMusic.noteInterval);
-                }
-                
-                // 停止振荡器
-                if (backgroundMusic.oscillator) {
-                    setTimeout(() => {
+                // Stop all active notes
+                if (backgroundMusic.activeNotes && Array.isArray(backgroundMusic.activeNotes)) {
+                    backgroundMusic.activeNotes.forEach(source => {
                         try {
-                            backgroundMusic.oscillator.stop();
+                            source.stop();
                         } catch (e) {
-                            // 忽略已停止的振荡器错误
+                            // Ignore errors for already stopped audio sources
                         }
-                    }, 500);
+                    });
                 }
                 
                 backgroundMusic = null;
-                musicPlaying = false;
+                if (updatePlayingState) {
+                    musicPlaying = false;
+                }
+                updateMusicButtonIcon();
             }
         }
         
-        // 用户交互触发音频上下文恢复
+        // User interaction triggers audio context resume
         document.addEventListener('click', () => {
             if (audioContext && audioContext.state === 'suspended') {
                 audioContext.resume();
             }
         }, { once: true });
+
+        // Music toggle button event listener
+        document.addEventListener('DOMContentLoaded', () => {
+            const musicToggle = document.getElementById('musicToggle');
+            if (musicToggle) {
+                musicToggle.addEventListener('click', () => {
+                    if (musicPlaying) {
+                        stopBackgroundMusic();
+                    } else {
+                        createBackgroundMusic();
+                    }
+                    updateMusicButtonIcon();
+                });
+            }
+        });
         
-        // 游戏状态和变量
+        // Update music button icon
+        function updateMusicButtonIcon() {
+            const musicToggle = document.getElementById('musicToggle');
+            if (musicToggle) {
+                musicToggle.textContent = musicPlaying ? '🔊' : '🔇';
+            }
+        }
+
+        // Game state and variables
         let gameState = 'idle'; // idle, playing, gameOver, gameWin
-        let playerName = 'player'; // 默认玩家昵称
+        let playerName = 'player'; // Default player name
         let player = {
             x: 0,
             y: 0,
@@ -674,64 +1016,64 @@
             name: playerName
         };
         
-        // 背景音乐相关变量
+        // BGM related variables
         let audioContext = null;
         let musicPlaying = false;
         let backgroundMusic = null;
         
-        // 玩家技能相关变量
-        let currentSkill = null; // 当前技能类型: 'dash', 'roar', 'doubleScore'
-        let skillActive = false; // 技能是否正在激活状态
-        let skillCooldown = 0; // 技能冷却计时器
-        let doubleScoreTimer = 0; // 得分翻倍计时器
-        let roarEffectTimer = 0; // 吼叫效果计时器
+        // Player skill related variables
+        let currentSkill = null; // Current skill type: 'dash', 'roar', 'doubleScore'
+        let skillActive = false; // Whether skill is active
+        let skillCooldown = 0; // Skill cooldown timer
+        let doubleScoreTimer = 0; // Double score timer
+        let roarEffectTimer = 0; // Roar effect timer
         let enemies = [];
         let score = 0;
         let food = [];
         let ctx;
-        // 鼠标状态跟踪
+        // Mouse state tracking
         let mouseDirection = { x: 0, y: 0 };
         let isMouseDown = false;
         
-        // 帧率控制变量
+        // Frame rate control variables
         const FPS = 60;
         const frameInterval = 1000 / FPS;
         let lastFrameTime = 0;
         let animationId = null;
         
-        // 初始化游戏
+        // Init game
         function initGame() {
             ctx = gameCanvas.getContext('2d');
             setupCanvas();
             resetGame();
             
-            // 添加鼠标事件监听
+            // Add mouse event listeners
             gameCanvas.addEventListener('mousedown', handleMouseDown);
             document.addEventListener('mousemove', handleMouseMove);
             document.addEventListener('mouseup', handleMouseUp);
             
-            // 添加触摸事件监听
+            // Add touch event listeners
             gameCanvas.addEventListener('touchstart', handleTouchStart);
             document.addEventListener('touchmove', handleTouchMove);
             document.addEventListener('touchend', handleTouchEnd);
         }
         
-        // 处理鼠标按下事件
+        // Handle mouse down event
         function handleMouseDown(e) {
             isMouseDown = true;
             updateMouseDirection(e);
         }
         
-        // 处理鼠标移动事件
+        // Handle mouse move event
         function handleMouseMove(e) {
             if (isMouseDown) {
                 updateMouseDirection(e);
             }
         }
         
-        // 触摸事件支持
+        // Touch event support
         function handleTouchStart(e) {
-            e.preventDefault(); // 防止默认触摸行为
+            e.preventDefault(); // Prevent default touch behavior
             isMouseDown = true;
             updateMouseDirection(e.touches[0]);
         }
@@ -748,27 +1090,27 @@
             mouseDirection = { x: 0, y: 0 };
         }
         
-        // 处理鼠标释放事件
+        // Handle mouse up event
         function handleMouseUp() {
             isMouseDown = false;
             mouseDirection = { x: 0, y: 0 };
         }
         
-        // 更新鼠标方向
+        // Update mouse direction
         function updateMouseDirection(e) {
             const rect = gameCanvas.getBoundingClientRect();
             const canvasX = e.clientX - rect.left;
             const canvasY = e.clientY - rect.top;
             
-            // 获取游戏画布中心点
+            // Get game canvas center point
             const centerX = rect.width / 2;
             const centerY = rect.height / 2;
             
-            // 计算鼠标相对于中心点的方向
+            // Calculate mouse direction relative to center
             mouseDirection.x = canvasX - centerX;
             mouseDirection.y = canvasY - centerY;
             
-            // 归一化方向向量
+            // Normalize direction vector
             const magnitude = Math.sqrt(mouseDirection.x * mouseDirection.x + mouseDirection.y * mouseDirection.y);
             if (magnitude > 0) {
                 mouseDirection.x /= magnitude;
@@ -776,41 +1118,41 @@
             }
         }
         
-        // 重置游戏
+        // Reset game
         function resetGame() {
-            player.x = 1000; // 放置在大地图中央
+            player.x = 1000; // Place in center of large map
             player.y = 1000;
-            player.radius = 10; // 增加初始体型，使玩家更容易看到
-            player.name = playerName; // 设置玩家昵称
+            player.radius = 10; // Increase initial size for better visibility
+            player.name = playerName; // Set player name
             score = 0;
             enemies = [];
             food = [];
             gameState = 'playing';
             
-            // 重置技能相关变量
+            // Reset skill related variables
             currentSkill = null;
             skillActive = false;
             skillCooldown = 0;
             doubleScoreTimer = 0;
             roarEffectTimer = 0;
             
-            // 更新技能按钮UI
+            // Update skill button UI
             updateSkillButton();
             
-            // 创建初始敌人
+            // Create initial enemies
             for (let i = 0; i < 15; i++) {
                 spawnEnemy();
             }
             
-            // 创建初始食物 - 增加初始食物数量
+            // Create initial food - increase initial food count
             for (let i = 0; i < 200; i++) {
                 spawnFood();
             }
         }
         
-        // 检查位置是否有效（不与任何现有球重叠）
+        // Check if position is valid (no overlap with existing balls)
         function isPositionValid(x, y, radius) {
-            // 检查与玩家的碰撞
+            // Check collision with player
             const dxPlayer = x - player.x;
             const dyPlayer = y - player.y;
             const distancePlayer = Math.sqrt(dxPlayer * dxPlayer + dyPlayer * dyPlayer);
@@ -818,7 +1160,7 @@
                 return false;
             }
             
-            // 检查与所有敌人的碰撞
+            // Check collision with all enemies
             for (let i = 0; i < enemies.length; i++) {
                 const dxEnemy = x - enemies[i].x;
                 const dyEnemy = y - enemies[i].y;
@@ -828,7 +1170,7 @@
                 }
             }
             
-            // 检查与所有食物的碰撞（食物很小，但也需要避免）
+            // Check collision with all food (small but need to avoid)
             for (let i = 0; i < food.length; i++) {
                 const dxFood = x - food[i].x;
                 const dyFood = y - food[i].y;
@@ -841,20 +1183,20 @@
             return true;
         }
         
-        // 生成敌人 - 确保敌人在地图内生成且不与任何现有球重叠
+        // Generate enemy - ensure spawn within map and no overlap
         function spawnEnemy() {
             const types = ['dog', 'mouse', 'cat'];
             const type = types[Math.floor(Math.random() * types.length)];
-            const baseRadius = Math.random() * 15 + 5; // 敌人初始体型也调整，确保玩家可以通过吃食物成长
+            const baseRadius = Math.random() * 15 + 5; // Adjust enemy initial size so player can grow by eating food
             
-            // 尝试最多100次生成有效的位置
+            // Try up to 100 times to generate valid position
             let enemy;
             let attempts = 0;
             const maxAttempts = 100;
             
             do {
                 if (attempts >= maxAttempts) {
-                    // 如果尝试次数过多，就使用默认位置（避免无限循环）
+                    // If too many attempts, use default position (avoid infinite loop)
                     enemy = {
                         x: 1000,
                         y: 1000,
@@ -869,11 +1211,11 @@
                     break;
                 }
                 
-                // 随机生成位置 - 更大的地图范围
+                // Random position - larger map range
                 const x = 200 + Math.random() * 1600;
                 const y = 200 + Math.random() * 1600;
                 
-                // 检查位置是否有效
+                // Check if position is valid
                 if (isPositionValid(x, y, baseRadius)) {
                     enemy = {
                         x: x,
@@ -895,19 +1237,19 @@
             enemies.push(enemy);
         }
         
-        // 根据敌人类型获取颜色
+        // Get color based on enemy type
         function getEnemyColor(type) {
             if (type === 'dog') {
-                return '#8B4513'; // 棕色
+                return '#8B4513'; // Brown
             } else if (type === 'mouse') {
-                return '#444444'; // 深灰色
+                return '#444444'; // Dark gray
             } else if (type === 'cat') {
-                return '#FF69B4'; // 粉色
+                return '#FF69B4'; // Pink
             }
-            return '#000000'; // 默认黑色
+            return '#000000'; // Default black
         }
         
-        // 生成随机昵称
+        // Generate random name
         function generateRandomName(type) {
             const dogNames = ['Rex', 'Max', 'Buddy', 'Rocky', 'Charlie', 'Cooper', 'Duke', 'Toby', 'Teddy', 'Bailey'];
             const mouseNames = ['Jerry', 'Mickey', 'Speedy', 'Squeaky', 'Nibbles', 'Scamper', 'Twitch', 'Whiskers', 'Cheese', 'Peanut'];
@@ -931,18 +1273,18 @@
             return names[Math.floor(Math.random() * names.length)];
         }
 
-        // 生成食物 - 确保食物不与任何现有球重叠，优化生成位置使食物更密集
+        // Generate food - ensure no overlap, optimize positions for denser food
         function spawnFood() {
             const radius = Math.random() * 2 + 1;
             
-            // 尝试最多100次生成有效的位置
+            // Try up to 100 times to generate valid position
             let foodItem;
             let attempts = 0;
             const maxAttempts = 100;
             
             do {
                 if (attempts >= maxAttempts) {
-                    // 如果尝试次数过多，就使用默认位置（避免无限循环）
+                    // If too many attempts, use default position (avoid infinite loop)
                     foodItem = {
                         x: 1000,
                         y: 1000,
@@ -952,23 +1294,23 @@
                     break;
                 }
                 
-                // 随机生成位置 - 偏向于玩家周围区域，使食物更密集
+                // Random position - favor player area for denser food
                 let x, y;
                 if (Math.random() < 0.7) {
-                    // 70%的概率在玩家周围生成食物
-                    const playerRange = 500; // 玩家周围的生成范围
+                    // 70% chance to spawn near player
+                    const playerRange = 500; // Spawn range around player
                     x = player.x + (Math.random() - 0.5) * playerRange;
                     y = player.y + (Math.random() - 0.5) * playerRange;
-                    // 确保在地图范围内
+                    // Ensure within map bounds
                     x = Math.max(0, Math.min(2000, x));
                     y = Math.max(0, Math.min(2000, y));
                 } else {
-                    // 30%的概率在整个地图范围内生成食物
+                    // 30% chance to spawn anywhere on map
                     x = 200 + Math.random() * 1600;
                     y = 200 + Math.random() * 1600;
                 }
                 
-                // 检查位置是否有效
+                // Check if position is valid
                 if (isPositionValid(x, y, radius)) {
                     foodItem = {
                         x: x,
@@ -985,64 +1327,64 @@
             food.push(foodItem);
         }
         
-        // 游戏主循环 - 限制为60帧
+        // Main game loop - capped at 60fps
         function gameLoop(timestamp) {
             if (gameState !== 'playing') return;
             
-            // 计算经过的时间
+            // Calculate elapsed time
             if (!lastFrameTime) lastFrameTime = timestamp;
             const elapsed = timestamp - lastFrameTime;
             
-            // 只有当经过的时间足够长时才执行更新
+            // Only update when enough time has passed
             if (elapsed >= frameInterval) {
-                // 更新上一帧时间
+                // Update last frame time
                 lastFrameTime = timestamp - (elapsed % frameInterval);
                 
                 ctx.clearRect(0, 0, gameCanvas.width, gameCanvas.height);
                 
-                // 计算视野缩放因子：优化的高空相机效果
-                // 随着玩家体型增大，视野会适度变广，但保留足够的大小感，让玩家能感受到自己的球在变大
-                const baseScale = 50; // 增加基础缩放因子，让玩家球看起来更大
-                const minScale = 0.5; // 提高最小缩放比例，防止过度缩小
-                // 使用更平缓的反比例关系，结合对数函数让变化更自然
+                // Calculate view scale: optimized overhead camera effect
+                // Wider view as player grows, but keep sense of size so player feels growth
+                const baseScale = 50; // Increase base scale to make player ball look bigger
+                const minScale = 0.5; // Increase min scale to prevent excessive zoom out
+                // Use gentler inverse relationship with log for more natural scaling
                 const viewScale = Math.max(minScale, baseScale / (player.radius * 0.3 + 10));
                 
-                // 保存当前变换状态
+                // Save current transform state
                 ctx.save();
                 
-                // 应用视野变换：将玩家置于屏幕中心，并根据体型缩放
+                // Apply view transform: center player and scale based on size
                 ctx.translate(gameCanvas.width / 2, gameCanvas.height / 2);
                 ctx.scale(viewScale, viewScale);
                 ctx.translate(-player.x, -player.y);
                 
-                // 绘制地图背景
+                // Draw map background
                 ctx.fillStyle = '#f0f0f0';
                 ctx.fillRect(0, 0, 2000, 2000);
                 
-                // 更新和绘制玩家
+                // Update and draw player
                 updatePlayer();
                 updateSkills();
                 drawPlayer();
                 drawSkillEffect();
                 
-                // 更新和绘制敌人
+                // Update and draw enemies
                 updateEnemies();
                 drawEnemies();
                 
-                // 更新和绘制食物
+                // Update and draw food
                 updateFood();
                 drawFood();
                 
-                // 检测碰撞
+                // Detect collisions
                 checkCollisions();
                 
-                // 恢复变换状态
+                // Restore transform state
                 ctx.restore();
                 
-                // 显示分数（不随视野缩放）
+                // Show score (not scaled with view)
                 drawScore();
                 
-                // 定期生成新敌人和食物 - 增加食物生成概率
+                // Periodically generate new enemies and food - increase food spawn rate
                 if (Math.random() < 0.02) {
                     spawnEnemy();
                 }
@@ -1050,26 +1392,26 @@
                     spawnFood();
                 }
                 
-                // 更新排行榜
+                // Update leaderboard
                 updateLeaderboard();
             }
             
             animationId = requestAnimationFrame(gameLoop);
         }
         
-        // 更新玩家位置 - 使用鼠标方向控制
+        // Update player position - controlled by mouse direction
         function updatePlayer() {
-            // 只有在鼠标按下时才移动玩家
+            // Only move player when mouse is pressed
             if (isMouseDown) {
-                // 动态速度：使用平方根函数实现更平滑的速度下降曲线
+                // Dynamic speed: use sqrt for smoother speed decay curve
                 const speedFactor = Math.max(0, 30 - player.radius);
                 const dynamicSpeed = Math.max(1, Math.sqrt(speedFactor) * 0.8 + 1.0);
                 
-                // 根据鼠标方向移动玩家
+                // Move player based on mouse direction
                 player.x += mouseDirection.x * dynamicSpeed;
                 player.y += mouseDirection.y * dynamicSpeed;
                 
-                // 循环边界 - 到达一边会自动连接到另一边
+                // Wrap around edges - connect one side to the other
                 const mapSize = 2000;
                 if (player.x < 0) player.x = mapSize;
                 else if (player.x > mapSize) player.x = 0;
@@ -1078,19 +1420,19 @@
             }
         }
         
-        // 更新敌人位置
+        // Update enemy positions
         function updateEnemies() {
             for (let i = enemies.length - 1; i >= 0; i--) {
                 const e = enemies[i];
                 if (!e.target) e.target = null, e.targetUpdateCounter = 0;
                 
-                // 每30帧更新一次目标
+                // Update targets every 30 frames
                 if (e.targetUpdateCounter++ >= 30) {
                     e.targetUpdateCounter = 0;
                     e.target = findBestTarget(e);
                 }
                 
-                // 处理锁定目标的移动
+                // Handle movement towards locked target
                 if (e.target) {
                     let targetX, targetY;
                     if (e.target.type === 'food') {
@@ -1117,7 +1459,7 @@
                             }
                         }
                         
-                        // 计算移动方向
+                        // Calculate movement direction
                         const dx = targetX - e.x;
                         const dy = targetY - e.y;
                         const magnitude = Math.sqrt(dx * dx + dy * dy);
@@ -1131,13 +1473,13 @@
                     e.directionY = Math.random() * 2 - 1;
                 }
                 
-                // 移动敌人（动态速度）
+                // Move enemy (dynamic speed)
                 const speedFactor = Math.max(0, 30 - e.radius);
                 const speed = Math.max(1, Math.sqrt(speedFactor) * 0.8 + 1.0);
                 e.x += e.directionX * speed;
                 e.y += e.directionY * speed;
                 
-                // 循环边界 - 到达一边会自动连接到另一边
+                // Wrap around edges - connect one side to the other
                 const mapSize = 2000;
                 if (e.x < 0) e.x = mapSize;
                 else if (e.x > mapSize) e.x = 0;
@@ -1146,13 +1488,13 @@
             }
         }
         
-        // 为敌人寻找最佳目标
+        // Find best target for enemy
         function findBestTarget(e) {
             const detectionRange = 200;
             let bestTarget = null;
             let highestPriority = -1;
             
-            // 1. 检查食物（优先级3）
+            // 1. Check food (priority 3)
             for (let i = 0; i < food.length; i++) {
                 const dx = food[i].x - e.x;
                 const dy = food[i].y - e.y;
@@ -1163,7 +1505,7 @@
                 }
             }
             
-            // 2. 检查敌人（优先级2或4）
+            // 2. Check enemies (priority 2 or 4)
             for (let i = 0; i < enemies.length; i++) {
                 const otherEnemy = enemies[i];
                 if (e === otherEnemy) continue;
@@ -1185,19 +1527,19 @@
                 }
             }
             
-            // 3. 检查玩家（优先级调整：躲避优先级4，追击优先级2）
+            // 3. Check player (adjusted priority: avoid 4, chase 2)
             const dxPlayer = player.x - e.x;
             const dyPlayer = player.y - e.y;
             const distancePlayer = Math.sqrt(dxPlayer * dxPlayer + dyPlayer * dyPlayer);
             if (distancePlayer < detectionRange) {
                 if (player.radius > e.radius * 1.1) {
-                    // 玩家更大，敌人应该躲避，优先级4（保持最高）
+                    // Player is bigger, enemy should avoid, priority 4 (highest)
                     if (highestPriority < 4) {
                         bestTarget = {type: 'player'};
                         highestPriority = 4;
                     }
                 } else if (e.radius > player.radius * 1.1) {
-                    // 敌人更大，应该追击玩家，提高优先级到2（高于食物但低于躲避）
+                    // Enemy is bigger, should chase player, increase priority to 2 (higher than food but lower than avoid)
                     if (highestPriority < 2) {
                         bestTarget = {type: 'player'};
                         highestPriority = 2;
@@ -1208,7 +1550,7 @@
             return bestTarget;
         }
         
-        // 判断是否应该追击
+        // Determine if should chase
         function shouldChase(e, otherEnemy) {
             if (e.radius <= otherEnemy.radius * 1.1) return false;
             if (e.type === 'mouse') return otherEnemy.type === 'dog';
@@ -1217,7 +1559,7 @@
             return false;
         }
         
-        // 判断是否应该躲避
+        // Determine if should avoid
         function shouldAvoid(e, otherEnemy) {
             if (e.radius > otherEnemy.radius * 1.1) return false;
             if (e.type === 'mouse') return otherEnemy.type === 'cat';
@@ -1226,23 +1568,23 @@
             return false;
         }
         
-        // 更新食物 - 提高食物数量的最低阈值
+        // Update food - increase minimum food threshold
         function updateFood() {
-            // 如果食物太少，生成更多
+            // Generate more if too few food
             while (food.length < 200) {
                 spawnFood();
             }
         }
         
-        // 检测碰撞
+        // Detect collisions
         function checkCollisions() {
-            // 检查获胜条件：玩家直径大于地图宽度（2000）
+            // Check win condition: player diameter > map width (2000)
             if (player.radius > 1000) {
                 gameWin();
                 return;
             }
             
-            // 1. 玩家吃食物
+            // 1. Player eats food
             for (let i = food.length - 1; i >= 0; i--) {
                 const dx = player.x - food[i].x;
                 const dy = player.y - food[i].y;
@@ -1250,7 +1592,7 @@
                 if (d < player.radius) {
                     food.splice(i, 1);
                     if (doubleScoreTimer > 0) {
-                        score += 2; // 得分翻倍
+                        score += 2; // Double score
                     } else {
                         score++;
                     }
@@ -1258,7 +1600,7 @@
                 }
             }
             
-            // 2. 敌人吃食物
+            // 2. Enemy eats food
             for (let i = enemies.length - 1; i >= 0; i--) {
                 const e = enemies[i];
                 for (let j = food.length - 1; j >= 0; j--) {
@@ -1272,7 +1614,7 @@
                 }
             }
             
-            // 3. 玩家与敌人碰撞
+            // 3. Player collides with enemy
             for (let i = enemies.length - 1; i >= 0; i--) {
                 const e = enemies[i];
                 const dx = player.x - e.x;
@@ -1283,13 +1625,13 @@
                         enemies.splice(i, 1);
                         const pointsEarned = Math.floor(e.radius * 2);
                         if (doubleScoreTimer > 0) {
-                            score += pointsEarned * 2; // 得分翻倍
+                            score += pointsEarned * 2; // Double score
                         } else {
                             score += pointsEarned;
                         }
                         player.radius = Math.sqrt(player.radius * player.radius + e.radius * e.radius * 0.5);
                         
-                        // 授予技能
+                        // Award skill
                         if (e.type === 'mouse') {
                             setPlayerSkill('dash');
                         } else if (e.type === 'dog') {
@@ -1301,7 +1643,7 @@
                         gameOver();
                         return;
                     } else {
-                        // 相似体型碰撞时，让它们互相推开
+                        // When similar sizes collide, push them apart
                         const angle = Math.atan2(dy, dx);
                         const pushDistance = (player.radius + e.radius - d) * 0.5;
                         player.x += Math.cos(angle) * pushDistance;
@@ -1312,7 +1654,7 @@
                 }
             }
             
-            // 4. 敌人之间的碰撞
+            // 4. Enemy collision with each other
             for (let i = 0; i < enemies.length; i++) {
                 for (let j = i + 1; j < enemies.length; j++) {
                     const e1 = enemies[i];
@@ -1331,7 +1673,7 @@
                             i--;
                             break;
                         } else {
-                            // 相似体型碰撞时，让它们互相推开
+                            // When similar sizes collide, push them apart
                             const angle = Math.atan2(dy, dx);
                             const pushDistance = (e1.radius + e2.radius - d) * 0.5;
                             e1.x += Math.cos(angle) * pushDistance;
@@ -1344,14 +1686,14 @@
             }
         }
         
-        // 更新排行榜
+        // Update leaderboard
         function updateLeaderboard() {
             if (!leaderboardList) return;
             
-            // 收集所有角色的信息
+            // Collect all characters' info
             let leaderboardData = [];
             
-            // 添加玩家
+            // Add player
             leaderboardData.push({
                 name: player.name,
                 size: player.radius,
@@ -1359,7 +1701,7 @@
                 color: player.color
             });
             
-            // 添加敌人
+            // Add enemies
             for (let i = 0; i < enemies.length; i++) {
                 leaderboardData.push({
                     name: enemies[i].name,
@@ -1369,10 +1711,10 @@
                 });
             }
             
-            // 按照大小排序
+            // Sort by size
             leaderboardData.sort((a, b) => b.size - a.size);
             
-            // 显示排行榜前10名
+            // Show top 10 in leaderboard
             leaderboardList.innerHTML = '';
             const maxEntries = Math.min(10, leaderboardData.length);
             
@@ -1386,14 +1728,14 @@
                 entryElement.style.borderRadius = '5px';
                 entryElement.style.background = i < 3 ? 'rgba(240, 240, 240, 0.7)' : 'transparent';
                 
-                // 排名
+                // Rank
                 const rankElement = document.createElement('div');
                 rankElement.textContent = (i + 1) + '.';
                 rankElement.style.width = '2vw';
                 rankElement.style.fontWeight = 'bold';
                 rankElement.style.marginRight = '1vw';
                 
-                // 颜色指示器
+                // Color indicator
                 const colorIndicator = document.createElement('div');
                 colorIndicator.style.width = '1vw';
                 colorIndicator.style.height = '1vw';
@@ -1401,7 +1743,7 @@
                 colorIndicator.style.backgroundColor = entry.color;
                 colorIndicator.style.marginRight = '1vw';
                 
-                // 名称和大小
+                // Name and size
                 const infoElement = document.createElement('div');
                 infoElement.style.flex = '1';
                 
@@ -1425,23 +1767,23 @@
             }
         }
         
-        // 游戏结束
+        // Game over
         function gameOver() {
             gameState = 'gameOver';
             
-            // 取消动画帧请求
+            // Cancel animation frame request
             if (animationId) {
                 cancelAnimationFrame(animationId);
                 animationId = null;
             }
             
-            // 保存当前状态
+            // Save current state
             ctx.save();
             
-            // 重置所有变换，确保游戏结束界面显示在用户视觉中心
+            // Reset all transforms to ensure game over UI is centered visually
             ctx.setTransform(1, 0, 0, 1, 0, 0);
             
-            // 显示游戏结束画面
+            // Show game over screen
             ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
             ctx.fillRect(0, 0, gameCanvas.width, gameCanvas.height);
             
@@ -1453,30 +1795,30 @@
             ctx.fillText('Your Score: ' + score, gameCanvas.width / 2, gameCanvas.height / 2 + 20);
             ctx.fillText('Click to play again', gameCanvas.width / 2, gameCanvas.height / 2 + 60);
             
-            // 恢复之前的状态
+            // Restore previous state
             ctx.restore();
             
-            // 添加点击重新开始
+            // Add click to restart
             gameCanvas.addEventListener('click', restartGame);
         }
         
-        // 游戏获胜
+        // Game win
         function gameWin() {
             gameState = 'gameWin';
             
-            // 取消动画帧请求
+            // Cancel animation frame request
             if (animationId) {
                 cancelAnimationFrame(animationId);
                 animationId = null;
             }
             
-            // 保存当前状态
+            // Save current state
             ctx.save();
             
-            // 重置所有变换，确保游戏获胜界面显示在用户视觉中心
+            // Reset all transforms to ensure game win UI is centered visually
             ctx.setTransform(1, 0, 0, 1, 0, 0);
             
-            // 显示游戏获胜画面
+            // Show game win screen
             ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
             ctx.fillRect(0, 0, gameCanvas.width, gameCanvas.height);
             
@@ -1490,36 +1832,41 @@
             ctx.fillText('Final Size: ' + Math.round(player.radius), gameCanvas.width / 2, gameCanvas.height / 2 + 60);
             ctx.fillText('Click to play again', gameCanvas.width / 2, gameCanvas.height / 2 + 100);
             
-            // 恢复之前的状态
+            // Restore previous state
             ctx.restore();
             
-            // 添加点击重新开始
+            // Add click to restart
             gameCanvas.addEventListener('click', restartGame);
         }
         
-        // 重新开始游戏
+        // Restart game
         function restartGame() {
             if (gameState === 'gameOver' || gameState === 'gameWin') {
                 gameCanvas.removeEventListener('click', restartGame);
                 resetGame();
                 gameLoop();
+                
+                // Replay music on each restart
+                // Stop current music without changing play state
+                stopBackgroundMusic(false); 
+                createBackgroundMusic();
             }
         }
         
-        // 绘制玩家
+        // Draw player
         function drawPlayer() {
             ctx.fillStyle = player.color;
             ctx.beginPath();
             ctx.arc(player.x, player.y, player.radius, 0, Math.PI * 2);
             ctx.fill();
             
-            // 绘制指示箭头 - 当鼠标按下时显示
+            // Draw direction arrow - show when mouse is pressed
             if (isMouseDown && (mouseDirection.x !== 0 || mouseDirection.y !== 0)) {
                 const arrowLength = player.radius * 1.5;
                 const arrowX = player.x + mouseDirection.x * arrowLength;
                 const arrowY = player.y + mouseDirection.y * arrowLength;
                 
-                // 绘制箭头线条
+                // Draw arrow line
                 ctx.strokeStyle = 'red';
                 ctx.lineWidth = player.radius * 0.1;
                 ctx.beginPath();
@@ -1527,42 +1874,42 @@
                 ctx.lineTo(arrowX, arrowY);
                 ctx.stroke();
                 
-                // 绘制箭头头部
+                // Draw arrow head
                 const angle = Math.atan2(mouseDirection.y, mouseDirection.x);
                 const headLength = player.radius * 0.4;
-                const headAngle = Math.PI / 6; // 30度
+                const headAngle = Math.PI / 6; // 30 degrees
                 
                 ctx.fillStyle = 'red';
                 ctx.beginPath();
-                // 箭头尖端
+                // Arrow tip
                 ctx.moveTo(arrowX, arrowY);
-                // 箭头左侧羽毛
+                // Arrow left feather
                 ctx.lineTo(
                     arrowX - headLength * Math.cos(angle - headAngle),
                     arrowY - headLength * Math.sin(angle - headAngle)
                 );
-                // 箭头底部中点
+                // Arrow bottom midpoint
                 const arrowBaseLength = player.radius * 0.2;
                 const baseX = arrowX - arrowBaseLength * Math.cos(angle);
                 const baseY = arrowY - arrowBaseLength * Math.sin(angle);
                 ctx.lineTo(baseX, baseY);
-                // 箭头右侧羽毛
+                // Arrow right feather
                 ctx.lineTo(
                     arrowX - headLength * Math.cos(angle + headAngle),
                     arrowY - headLength * Math.sin(angle + headAngle)
                 );
-                // 闭合路径回到尖端
+                // Close path back to tip
                 ctx.closePath();
                 ctx.fill();
             }
             
-            // 绘制黑猫特征
-            // 添加猫耳朵
+            // Draw black cat features
+            // Add cat ears
             ctx.fillStyle = player.color;
             const earHeight = player.radius * 0.6;
             const earWidth = player.radius * 0.3;
             
-            // 左耳
+            // Left ear
             ctx.beginPath();
             ctx.moveTo(player.x - player.radius * 0.3, player.y - player.radius);
             ctx.lineTo(player.x - player.radius * 0.7, player.y - player.radius - earHeight);
@@ -1570,7 +1917,7 @@
             ctx.closePath();
             ctx.fill();
             
-            // 右耳
+            // Right ear
             ctx.beginPath();
             ctx.moveTo(player.x + player.radius * 0.3, player.y - player.radius);
             ctx.lineTo(player.x + player.radius * 0.7, player.y - player.radius - earHeight);
@@ -1578,7 +1925,7 @@
             ctx.closePath();
             ctx.fill();
             
-            // 眼睛
+            // Eyes
             ctx.fillStyle = 'white';
             const eyeSize = player.radius * 0.15;
             const eyeOffset = player.radius * 0.35;
@@ -1587,7 +1934,7 @@
             ctx.arc(player.x + eyeOffset, player.y - eyeOffset / 2, eyeSize, 0, Math.PI * 2);
             ctx.fill();
             
-            // 瞳孔 - 使用arc方法确保兼容性
+            // Pupils - use arc method for compatibility
             ctx.fillStyle = 'black';
             const pupilSize = eyeSize * 0.5;
             ctx.beginPath();
@@ -1595,30 +1942,30 @@
             ctx.arc(player.x + eyeOffset + player.radius * 0.03, player.y - eyeOffset / 2, pupilSize, 0, Math.PI * 2);
             ctx.fill();
             
-            // 猫嘴 - 更符合猫的形象
+            // Cat mouth - more cat-like appearance
             ctx.strokeStyle = 'white';
             ctx.lineWidth = player.radius * 0.05;
             ctx.beginPath();
-            // 上唇
+            // Upper lip
             ctx.moveTo(player.x - player.radius * 0.2, player.y + player.radius * 0.1);
             ctx.quadraticCurveTo(player.x, player.y + player.radius * 0.25, player.x + player.radius * 0.2, player.y + player.radius * 0.1);
-            // 下唇
+            // Lower lip
             ctx.moveTo(player.x - player.radius * 0.15, player.y + player.radius * 0.1);
             ctx.quadraticCurveTo(player.x, player.y + player.radius * 0.2, player.x + player.radius * 0.15, player.y + player.radius * 0.1);
             ctx.stroke();
             
-            // 添加猫胡须
+            // Add cat whiskers
             ctx.strokeStyle = 'white';
             ctx.lineWidth = player.radius * 0.03;
             ctx.beginPath();
-            // 左胡须
+            // Left whiskers
             ctx.moveTo(player.x - player.radius * 0.4, player.y + player.radius * 0.05);
             ctx.lineTo(player.x - player.radius * 0.7, player.y - player.radius * 0.05);
             ctx.moveTo(player.x - player.radius * 0.4, player.y + player.radius * 0.1);
             ctx.lineTo(player.x - player.radius * 0.7, player.y + player.radius * 0.1);
             ctx.moveTo(player.x - player.radius * 0.4, player.y + player.radius * 0.15);
             ctx.lineTo(player.x - player.radius * 0.7, player.y + player.radius * 0.25);
-            // 右胡须
+            // Right whiskers
             ctx.moveTo(player.x + player.radius * 0.4, player.y + player.radius * 0.05);
             ctx.lineTo(player.x + player.radius * 0.7, player.y - player.radius * 0.05);
             ctx.moveTo(player.x + player.radius * 0.4, player.y + player.radius * 0.1);
@@ -1627,15 +1974,15 @@
             ctx.lineTo(player.x + player.radius * 0.7, player.y + player.radius * 0.25);
             ctx.stroke();
             
-            // 绘制玩家昵称
-             ctx.fillStyle = 'rgba(0, 0, 0, 0.7)'; // 半透明黑色
+            // Draw player name
+             ctx.fillStyle = 'rgba(0, 0, 0, 0.7)'; // Semi-transparent black
              ctx.font = (player.radius * 0.4) + 'px Arial';
              ctx.textAlign = 'center';
              ctx.textBaseline = 'top';
              ctx.fillText(player.name, player.x, player.y - player.radius - player.radius * 0.8);
         }
         
-        // 绘制敌人
+        // Draw enemy
         function drawEnemies() {
             for (let i = 0; i < enemies.length; i++) {
                 const enemy = enemies[i];
@@ -1645,11 +1992,11 @@
                 ctx.arc(enemy.x, enemy.y, enemy.radius, 0, Math.PI * 2);
                 ctx.fill();
                 
-                // 根据类型绘制特征
+                // Draw features based on type
                 ctx.fillStyle = 'white';
                 
                 if (enemy.type === 'dog') {
-                    // 狗耳朵
+                    // Dog ears
                     const earSize = enemy.radius * 0.3;
                     ctx.beginPath();
                     ctx.moveTo(enemy.x - enemy.radius * 0.5, enemy.y - enemy.radius);
@@ -1665,7 +2012,7 @@
                     ctx.closePath();
                     ctx.fill();
                     
-                    // 狗眼睛
+                    // Dog eyes
                     const eyeSize = enemy.radius * 0.15;
                     const eyeOffset = enemy.radius * 0.4;
                     ctx.beginPath();
@@ -1673,20 +2020,20 @@
                     ctx.arc(enemy.x + eyeOffset, enemy.y - eyeOffset / 2, eyeSize, 0, Math.PI * 2);
                     ctx.fill();
                     
-                    // 狗鼻子
+                    // Dog nose
                     ctx.fillStyle = 'black';
                     ctx.beginPath();
                     ctx.arc(enemy.x, enemy.y, eyeSize, 0, Math.PI * 2);
                     ctx.fill();
                 } else if (enemy.type === 'mouse') {
-                    // 老鼠耳朵
+                    // Mouse ears
                     const earSize = enemy.radius * 0.3;
                     ctx.beginPath();
                     ctx.arc(enemy.x - enemy.radius * 0.5, enemy.y - enemy.radius * 0.8, earSize, 0, Math.PI * 2);
                     ctx.arc(enemy.x + enemy.radius * 0.5, enemy.y - enemy.radius * 0.8, earSize, 0, Math.PI * 2);
                     ctx.fill();
                     
-                    // 老鼠眼睛
+                    // Mouse eyes
                     const eyeSize = enemy.radius * 0.15;
                     const eyeOffset = enemy.radius * 0.4;
                     ctx.beginPath();
@@ -1694,13 +2041,13 @@
                     ctx.arc(enemy.x + eyeOffset, enemy.y - eyeOffset / 4, eyeSize, 0, Math.PI * 2);
                     ctx.fill();
                     
-                    // 老鼠鼻子
+                    // Mouse nose
                     ctx.fillStyle = 'pink';
                     ctx.beginPath();
                     ctx.arc(enemy.x, enemy.y + enemy.radius * 0.2, eyeSize * 0.8, 0, Math.PI * 2);
                     ctx.fill();
                 } else if (enemy.type === 'cat') {
-                    // 猫耳朵
+                    // Cat ears
                     const earSize = enemy.radius * 0.4;
                     ctx.beginPath();
                     ctx.moveTo(enemy.x - enemy.radius * 0.5, enemy.y - enemy.radius);
@@ -1716,7 +2063,7 @@
                     ctx.closePath();
                     ctx.fill();
                     
-                    // 猫眼睛
+                    // Cat eyes
                     const eyeSize = enemy.radius * 0.15;
                     const eyeOffset = enemy.radius * 0.4;
                     ctx.beginPath();
@@ -1724,7 +2071,7 @@
                     ctx.arc(enemy.x + eyeOffset, enemy.y - eyeOffset / 2, eyeSize, 0, Math.PI * 2);
                     ctx.fill();
                     
-                    // 猫胡须
+                    // Cat whiskers
                     ctx.strokeStyle = 'white';
                     ctx.lineWidth = enemy.radius * 0.03;
                     ctx.beginPath();
@@ -1739,7 +2086,7 @@
                     ctx.stroke();
                 }
                 
-                // 敌人瞳孔
+                // Enemy pupils
                 ctx.fillStyle = 'black';
                 const pupilSize = enemy.radius * 0.08;
                 ctx.beginPath();
@@ -1747,8 +2094,8 @@
                 ctx.arc(enemy.x + enemy.radius * 0.4, enemy.y - enemy.radius * 0.2, pupilSize, 0, Math.PI * 2);
                 ctx.fill();
                 
-                // 绘制敌人昵称
-                 ctx.fillStyle = 'rgba(0, 0, 0, 0.7)'; // 半透明黑色
+                // Draw enemy name
+                 ctx.fillStyle = 'rgba(0, 0, 0, 0.7)'; // Semi-transparent black
                  ctx.font = (enemy.radius * 0.4) + 'px Arial';
                  ctx.textAlign = 'center';
                  ctx.textBaseline = 'top';
@@ -1756,7 +2103,7 @@
             }
         }
         
-        // 绘制食物
+
         function drawFood() {
             for (let i = 0; i < food.length; i++) {
                 ctx.fillStyle = food[i].color;
@@ -1766,7 +2113,7 @@
             }
         }
         
-        // 绘制分数
+
         function drawScore() {
             ctx.fillStyle = '#000';
             ctx.font = '20px Arial';
@@ -1776,57 +2123,60 @@
             ctx.fillText('View: ' + Math.round((player.radius / 10) * 100) + '%', 20, 90);
         }
         
-        // 开始游戏
+
         startBtn.addEventListener('click', () => {
-            // 获取玩家昵称，如果没有输入则使用默认值
+
             playerName = playerNameInput.value.trim() || 'player';
             
             gameContainer.classList.add('show');
             setupCanvas();
             
-            // 游戏容器中创建鱼背景
+
             createFishBg(gameFishBg);
             
-            // 初始化游戏并开始游戏循环
+
             if (gameState === 'idle') {
                 initGame();
             }
             resetGame();
-            // 重置帧率控制变量
+
             lastFrameTime = 0;
-            // 使用requestAnimationFrame启动游戏循环
+
             if (animationId) {
                 cancelAnimationFrame(animationId);
             }
             animationId = requestAnimationFrame(gameLoop);
             
-            // 播放背景音乐
+
+            musicPlaying = true;
             createBackgroundMusic();
         });
         
-        // 返回首页
+
         backBtn.addEventListener('click', () => {
             gameContainer.classList.remove('show');
+
+            stopBackgroundMusic();
             gameState = 'idle';
             
-            // 取消动画帧请求
+
             if (animationId) {
                 cancelAnimationFrame(animationId);
                 animationId = null;
             }
             
-            // 停止背景音乐
+
             stopBackgroundMusic();
         });
         
-        // 清理函数 - 防止内存泄漏
+
         function cleanupGame() {
-            // 移除鼠标事件监听器
+
             gameCanvas.removeEventListener('mousedown', handleMouseDown);
             document.removeEventListener('mousemove', handleMouseMove);
             document.removeEventListener('mouseup', handleMouseUp);
             
-            // 移除触摸事件监听器
+
             gameCanvas.removeEventListener('touchstart', handleTouchStart);
             document.removeEventListener('touchmove', handleTouchMove);
             document.removeEventListener('touchend', handleTouchEnd);
@@ -1836,7 +2186,6 @@
                 animationId = null;
             }
             
-            // 停止背景音乐
             stopBackgroundMusic();
         }
     </script>

@@ -1,0 +1,1015 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>音乐创作编辑器</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 1rem;
+            background-color: #f0f0f0;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            padding: 1rem;
+        }
+        h1, h2, h3 {
+            text-align: center;
+        }
+        .editor-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            justify-content: center;
+        }
+        .piano-container {
+            width: 100%;
+            height: 180px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            padding: 1rem;
+            background-color: #f9f9f9;
+            position: relative;
+            overflow: hidden;
+        }
+        .piano-keys {
+            position: absolute;
+            bottom: 1rem;
+            left: 1rem;
+            right: 1rem;
+            display: flex;
+        }
+        .key {
+            flex: 1;
+            min-width: 30px;
+            height: 150px;
+            border: 1px solid #333;
+            border-radius: 0 0 5px 5px;
+            background-color: white;
+            position: relative;
+            cursor: pointer;
+            transition: all 0.1s;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            padding-bottom: 10px;
+            user-select: none;
+        }
+        .key:hover {
+            background-color: #e6e6e6;
+        }
+        .key.active {
+            background-color: #007bff;
+            color: white;
+            transform: translateY(5px);
+        }
+        .key.black {
+            width: 20px;
+            height: 100px;
+            background-color: #333;
+            color: white;
+            margin-left: -10px;
+            margin-right: -10px;
+            z-index: 1;
+        }
+        .key.black:hover {
+            background-color: #555;
+        }
+        .key.black.active {
+            background-color: #0056b3;
+        }
+        .control-panel {
+            width: 100%;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            justify-content: center;
+            padding: 1rem;
+        }
+        .track-controls {
+            width: 100%;
+            max-width: 500px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            padding: 1rem;
+            background-color: #f9f9f9;
+        }
+        input, button, select, textarea {
+            padding: 0.5rem;
+            margin: 0.5rem 0;
+            font-size: 1rem;
+        }
+        textarea {
+            width: 100%;
+            height: 80px;
+            font-family: monospace;
+            resize: vertical;
+        }
+        .presets {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin: 0.5rem 0;
+        }
+        .preset-btn {
+            padding: 0.3rem 0.6rem;
+            font-size: 0.8rem;
+        }
+        .action-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+        .save-load {
+            width: 100%;
+            max-width: 500px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            padding: 1rem;
+            background-color: #f9f9f9;
+        }
+        #playbackPreview {
+            width: 100%;
+            height: 60px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            margin: 1rem 0;
+            background-color: #f9f9f9;
+            position: relative;
+            overflow: hidden;
+        }
+        .playbackIndicator {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background-color: #007bff;
+            transition: left 0.1s;
+        }
+        .note-block {
+            position: absolute;
+            bottom: 0;
+            background-color: rgba(0, 123, 255, 0.3);
+            border: 1px solid #007bff;
+            border-radius: 2px;
+        }
+        .track-container {
+            margin: 1rem 0;
+        }
+        .info-box {
+            background-color: #e7f3ff;
+            border-left: 4px solid #007bff;
+            padding: 1rem;
+            margin: 1rem 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>音乐创作编辑器</h1>
+        <p style="text-align: center;">使用直观的钢琴界面创建和编辑游戏音乐</p>
+        
+        <div class="info-box">
+            <h3>音符映射说明</h3>
+            <p><strong>键盘按键映射：</strong> a=do(C) w=升do(C#) s=re(D) e=升re(D#) d=mi(E) f=fa(F) t=升fa(F#) g=sol(G) y=升sol(G#) h=la(A) u=升la(A#) j=si(B)</p>
+            <p><strong>高八度：</strong> k=高do(C5) o=高升do(C#5) l=高re(D5) p=高升re(D#5) ;=高mi(E5) '=高fa(F5) [=高升fa(F#5) ]=高sol(G5)</p>
+            <p><strong>特殊符号：</strong> 0 = 休止符（静音）</p>
+        </div>
+        
+        <div class="editor-container">
+            <!-- 钢琴键盘 -->
+            <div class="piano-container">
+                <h3>钢琴键盘</h3>
+                <div class="piano-keys" id="pianoKeys"></div>
+            </div>
+            
+            <!-- 播放预览 -->
+            <div id="playbackPreview">
+                <div class="playbackIndicator" id="playbackIndicator"></div>
+            </div>
+            
+            <!-- 轨道1控制 -->
+            <div class="track-controls">
+                <h3>轨道1（主旋律）</h3>
+                <label for="len">音符长度（秒）：</label>
+                <input type="number" id="len" value="0.5" min="0.1" max="2" step="0.1">
+                
+                <div>
+                    <label for="melody">旋律字符串（a-z + 0表示静音）：</label>
+                    <textarea id="melody" placeholder="输入旋律字符串，例如 abcdefg"></textarea>
+                </div>
+                
+                <div class="presets">
+                    <button class="preset-btn" onclick="loadPreset('scale');">音阶</button>
+                    <button class="preset-btn" onclick="loadPreset('simple');">简单旋律</button>
+                    <button class="preset-btn" onclick="loadPreset('longer');">较长旋律</button>
+                    <button class="preset-btn" onclick="loadPreset('staccato');">断奏</button>
+                    <button class="preset-btn" onclick="loadPreset('demonKing');">魔王风格</button>
+                    <button class="preset-btn" onclick="loadPreset('harryPotter');">哈利波特风格</button>
+                    <button class="preset-btn" onclick="loadPreset('relaxedDemon');">舒缓魔王风</button>
+                </div>
+            </div>
+            
+            <!-- 轨道2控制 -->
+            <div class="track-controls">
+                <h3>轨道2（和声）</h3>
+                <label for="harmonyMelody">和声旋律：</label>
+                <textarea id="harmonyMelody" placeholder="输入和声旋律"></textarea>
+                
+                <div style="display: flex; flex-wrap: wrap; gap: 1rem; justify-content: center;">
+                    <div>
+                        <label for="pitchOffset">音高偏移（半音）：</label>
+                        <input type="number" id="pitchOffset" value="4" min="-12" max="12" step="1">
+                    </div>
+                    <div>
+                        <label for="timeDelay">时间延迟（音符数）：</label>
+                        <input type="number" id="timeDelay" value="0" min="0" max="8" step="1">
+                    </div>
+                </div>
+                
+                <!-- 特殊效果控制 -->
+                <div style="display: flex; flex-wrap: wrap; gap: 1rem; justify-content: center; margin-top: 1rem;">
+                    <div>
+                        <label>
+                            <input type="checkbox" id="specialMode">
+                            特殊模式
+                        </label>
+                    </div>
+                    <div>
+                        <label>
+                            <input type="checkbox" id="vibratoToggle">
+                            颤音效果
+                        </label>
+                    </div>
+                    <div>
+                        <label for="waveType">波形类型：</label>
+                        <select id="waveType">
+                            <option value="sine">正弦波</option>
+                            <option value="square">方波</option>
+                            <option value="triangle">三角波</option>
+                            <option value="sawtooth">锯齿波</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="presets">
+                    <button class="preset-btn" onclick="document.getElementById('harmonyMelody').value='cdefgab'; updatePlaybackPreview();">音阶</button>
+                    <button class="preset-btn" onclick="document.getElementById('harmonyMelody').value='gbdfac'; updatePlaybackPreview();">琶音</button>
+                </div>
+            </div>
+            
+            <!-- 保存和加载 -->
+            <div class="save-load">
+                <h3>保存 & 加载</h3>
+                <div>
+                    <label for="songName">歌曲名称：</label>
+                    <input type="text" id="songName" placeholder="输入歌曲名称">
+                    <button onclick="saveSong();">保存歌曲</button>
+                    <button onclick="loadSong();">加载歌曲</button>
+                </div>
+                <div>
+                    <label for="exportFormat">导出格式：</label>
+                    <select id="exportFormat">
+                        <option value="string">旋律字符串</option>
+                        <option value="json">JSON</option>
+                    </select>
+                    <button onclick="exportSong();">导出</button>
+                </div>
+                <div id="savedSongsList" style="margin-top: 1rem;">
+                    <p>已保存的歌曲：</p>
+                    <div id="savedSongs"></div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 操作按钮 -->
+        <div class="action-buttons">
+            <button onclick="playMelody();">播放轨道1</button>
+            <button onclick="playHarmony();">播放轨道2</button>
+            <button onclick="playBothTracks();">播放所有轨道</button>
+            <button onclick="clearMelody();">清空所有</button>
+        </div>
+    </div>
+
+    <script>
+        // 全局AudioContext对象
+        let audioContext = null;
+        
+        // 初始化钢琴键盘
+        function initPiano() {
+            const pianoKeys = document.getElementById('pianoKeys');
+            const keys = [];
+            
+            // 创建2个八度（C4到B5）
+            const notes = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+            
+            for (let octave = 4; octave <= 5; octave++) {
+                for (let i = 0; i < notes.length; i++) {
+                    const note = notes[i];
+                    const isBlack = note.includes('#');
+                    const key = document.createElement('div');
+                    key.className = `key ${isBlack ? 'black' : ''}`;
+                    key.textContent = isBlack ? '' : note;
+                    key.dataset.note = note;
+                    key.dataset.octave = octave;
+                    key.dataset.char = getCharForNote(note, octave);
+                    
+                    // 添加点击事件播放音符并添加到旋律
+                    key.addEventListener('click', function() {
+                        playSingleNote(this.dataset.char);
+                        addToMelody(this.dataset.char);
+                    });
+                    
+                    pianoKeys.appendChild(key);
+                    keys.push(key);
+                }
+            }
+            
+            // 添加键盘支持
+            document.addEventListener('keydown', function(e) {
+                // 键盘按键映射到钢琴音符
+                const keyMap = {
+                    'a': 'c', 'w': 'c#', 's': 'd', 'e': 'd#', 'd': 'e', 
+                    'f': 'f', 't': 'f#', 'g': 'g', 'y': 'g#', 'h': 'a', 
+                    'u': 'a#', 'j': 'b',
+                    'k': 'c', 'o': 'c#', 'l': 'd', 'p': 'd#', ';': 'e',
+                    "'": 'f', '[': 'f#', ']': 'g'
+                };
+                
+                const key = keyMap[e.key.toLowerCase()];
+                if (key) {
+                    e.preventDefault();
+                    // 找到对应的钢琴键
+                    const octave = e.key >= 'k' ? 5 : 4;
+                    const pianoKey = keys.find(k => 
+                        k.dataset.note.toLowerCase() === key && k.dataset.octave == octave
+                    );
+                    if (pianoKey) {
+                        // 触发点击事件
+                        pianoKey.click();
+                        // 视觉反馈
+                        pianoKey.classList.add('active');
+                        setTimeout(() => pianoKey.classList.remove('active'), 100);
+                    }
+                }
+            });
+        }
+        
+        // 将音符名称转换为旋律字符串中的字符
+        function getCharForNote(note, octave) {
+            // 基础音符映射
+            const baseNotes = {'c': 99, 'd': 100, 'e': 101, 'f': 102, 'g': 103, 'a': 97, 'b': 98};
+            const sharpOffset = note.includes('#') ? 12 : 0;
+            const octaveOffset = (octave - 4) * 12;
+            
+            const noteName = note.replace('#', '');
+            const baseCharCode = baseNotes[noteName.toLowerCase()];
+            
+            // 确保在a-z范围内
+            let charCode = baseCharCode + sharpOffset + octaveOffset;
+            if (charCode < 97) charCode = 97;
+            if (charCode > 122) charCode = 122;
+            
+            return String.fromCharCode(charCode);
+        }
+        
+        // 将字符转换为音符频率
+        function getFrequencyForChar(char) {
+            // 基于A4=440Hz的频率计算
+            // 使用12平均律，半音比为2^(1/12)
+            const baseA4 = 440;
+            const semitoneRatio = Math.pow(2, 1/12);
+            
+            // a=97对应A4=440Hz，其他字符基于这个基准计算
+            const semitoneOffset = char.charCodeAt(0) - 97;
+            return baseA4 * Math.pow(semitoneRatio, semitoneOffset);
+        }
+        
+        // 优化的钢琴音色生成函数
+        function generatePianoTone(frequency, time, volume = 1) {
+            if (!audioContext) {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            
+            // Basic waveform gen func
+            const b = (i, s, f, x) => Math.sin((i / s) * 6.28 * f + x);
+            
+            // Complex waveform gen - creates rich piano sound
+            const w = (i, freq) => {
+                // 基波
+                let fundamental = Math.sin(i / 44100 * freq * 6.28);
+                // 泛音1 (二次谐波)
+                let harmonic1 = b(i, 44100, freq, 0) ** 2;
+                // 泛音2 (三次谐波)
+                let harmonic2 = 0.75 * b(i, 44100, freq, 0.25);
+                // 泛音3 (四次谐波)
+                let harmonic3 = 0.1 * b(i, 44100, freq, 0.5);
+                
+                return fundamental + harmonic1 + harmonic2 + harmonic3;
+            };
+            
+            // 生成音频数据
+            const sampleCount = Math.floor(44100 * time);
+            const audioBuffer = audioContext.createBuffer(1, 1000000, 44100);
+            const channelData = audioBuffer.getChannelData(0);
+            
+            for (let i = 0; i < sampleCount; i++) {
+                // 起音阶段 (attack)
+                if (i < 88) {
+                    channelData[i] = (i / 88.2) * w(i, frequency) * volume;
+                }
+                // 衰减阶段 (decay)
+                else {
+                    // 动态衰减曲线，根据频率调整衰减速度
+                    const decayFactor = Math.pow(
+                        1 - (i - 88.2) / (44100 * (time - 0.002)),
+                        Math.pow(0.5 * Math.log(10000 * frequency / 44100), 2)
+                    );
+                    channelData[i] = decayFactor * w(i, frequency) * volume;
+                }
+            }
+            
+            return audioBuffer;
+        }
+        
+        // 播放单个音符 - 使用优化的钢琴音色
+        function playSingleNote(char) {
+            if (!char || char === '0') return;
+            
+            try {
+                const frequency = getFrequencyForChar(char);
+                const length = 0.3; // 预览的短持续时间
+                const volume = 0.3;
+                
+                // 生成钢琴音色
+                const audioBuffer = generatePianoTone(frequency, length, volume);
+                
+                // 创建音频源节点并播放
+                const source = audioContext.createBufferSource();
+                source.buffer = audioBuffer;
+                source.connect(audioContext.destination);
+                source.start();
+            } catch (e) {
+                console.error("播放音符时出错：", e);
+            }
+        }
+        
+        // 添加字符到旋律字符串
+        function addToMelody(char) {
+            const melodyTextarea = document.getElementById('melody');
+            melodyTextarea.value += char;
+            updatePlaybackPreview();
+        }
+        
+        // 颤音效果
+        function applyVibrato(oscillator, depth = 5, rate = 5) {
+            const vibratoLFO = audioContext.createOscillator();
+            const vibratoGain = audioContext.createGain();
+            
+            vibratoLFO.frequency.value = rate; // 颤音频率
+            vibratoGain.gain.value = depth; // 颤音深度
+            
+            vibratoLFO.connect(vibratoGain);
+            vibratoGain.connect(oscillator.frequency);
+            
+            vibratoLFO.start();
+            return vibratoLFO;
+        }
+        
+        // 高级音符播放函数 - 使用优化的钢琴音色
+        function playNotes(notes, length, volume = 0.3, useVibrato = false, waveType = 'sine') {
+            // 确保AudioContext已初始化
+            if (!audioContext) {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            
+            // 为所有音符创建一个大型音频缓冲区
+            const totalTime = notes.length * length;
+            const audioBuffer = audioContext.createBuffer(1, Math.ceil(44100 * totalTime) + 1000, 44100);
+            const channelData = audioBuffer.getChannelData(0);
+            
+            for (let i = 0; i < notes.length; i++) {
+                const note = notes[i];
+                if (note === '0') continue;
+                
+                const frequency = getFrequencyForChar(note);
+                const noteStartTime = Math.floor(i * length * 44100);
+                const noteDuration = length;
+                
+                // 基础波形生成函数
+                const b = (i, s, f, x) => Math.sin((i / s) * 6.28 * f + x);
+                
+                // 复合波形生成函数 - 创建丰富的钢琴音色
+                const w = (i, freq) => {
+                    // 基波
+                    let fundamental = Math.sin(i / 44100 * freq * 6.28);
+                    // 泛音1 (二次谐波)
+                    let harmonic1 = b(i, 44100, freq, 0) ** 2;
+                    // 泛音2 (三次谐波)
+                    let harmonic2 = 0.75 * b(i, 44100, freq, 0.25);
+                    // 泛音3 (四次谐波)
+                    let harmonic3 = 0.1 * b(i, 44100, freq, 0.5);
+                    
+                    return fundamental + harmonic1 + harmonic2 + harmonic3;
+                };
+                
+                // 生成单个音符的音频数据
+                const noteSampleCount = Math.floor(44100 * noteDuration);
+                for (let j = 0; j < noteSampleCount; j++) {
+                    const globalIndex = noteStartTime + j;
+                    if (globalIndex >= channelData.length) break;
+                    
+                    // 起音阶段 (attack)
+                    if (j < 88) {
+                        channelData[globalIndex] += (j / 88.2) * w(j, frequency) * volume;
+                    }
+                    // 衰减阶段 (decay)
+                    else {
+                        // 动态衰减曲线，根据频率调整衰减速度
+                        const decayFactor = Math.pow(
+                            1 - (j - 88.2) / (44100 * (noteDuration - 0.002)),
+                            Math.pow(0.5 * Math.log(10000 * frequency / 44100), 2)
+                        );
+                        channelData[globalIndex] += decayFactor * w(j, frequency) * volume;
+                    }
+                    
+                    // 防止音频剪辑
+                    if (channelData[globalIndex] > 1) channelData[globalIndex] = 1;
+                    if (channelData[globalIndex] < -1) channelData[globalIndex] = -1;
+                }
+            }
+            
+            // 创建音频源节点并播放
+            const source = audioContext.createBufferSource();
+            source.buffer = audioBuffer;
+            source.connect(audioContext.destination);
+            source.start();
+        }
+        
+        // 播放主旋律
+        function playMelody() {
+            const melody = document.getElementById('melody').value;
+            const length = parseFloat(document.getElementById('len').value) || 0.5;
+            const useVibrato = document.getElementById('vibratoToggle').checked;
+            const waveType = document.getElementById('waveType').value;
+            
+            if (melody.trim()) {
+                playNotes(melody.split(''), length, 0.3, useVibrato, waveType);
+                updatePlaybackAnimation(melody, length, 0);
+            }
+        }
+        
+        // 播放和声轨道
+        function playHarmony() {
+            const melody = document.getElementById('harmonyMelody').value;
+            const length = parseFloat(document.getElementById('len').value) || 0.5;
+            const pitchOffset = parseInt(document.getElementById('pitchOffset').value) || 0;
+            const timeDelayNotes = parseInt(document.getElementById('timeDelay').value) || 0;
+            const useVibrato = document.getElementById('vibratoToggle').checked;
+            const waveType = document.getElementById('waveType').value;
+            
+            if (!melody.trim()) return;
+            
+            // 应用音高偏移到旋律
+            let offsetMelody = '';
+            for (let i = 0; i < melody.length; i++) {
+                if (melody[i] !== '0') {
+                    let charCode = melody.charCodeAt(i) + pitchOffset;
+                    // 确保在a-z范围内
+                    if (charCode < 97) charCode = 97;
+                    if (charCode > 122) charCode = 122;
+                    offsetMelody += String.fromCharCode(charCode);
+                } else {
+                    offsetMelody += '0';
+                }
+            }
+            
+            const timeDelay = timeDelayNotes * length * 1000;
+            setTimeout(() => {
+                playNotes(offsetMelody.split(''), length, 0.3, useVibrato, waveType);
+                updatePlaybackAnimation(offsetMelody, length, timeDelayNotes * length);
+            }, timeDelay);
+        }
+        
+        // 同时播放两个轨道
+        function playBothTracks() {
+            const useSpecialMode = document.getElementById('specialMode').checked;
+            const useVibrato = document.getElementById('vibratoToggle').checked;
+            const waveType = useSpecialMode ? 'sawtooth' : document.getElementById('waveType').value;
+            
+            const melody = document.getElementById('melody').value;
+            const harmonyMelody = document.getElementById('harmonyMelody').value;
+            const length = parseFloat(document.getElementById('len').value) || 0.5;
+            const pitchOffset = parseInt(document.getElementById('pitchOffset').value) || 0;
+            const timeDelayNotes = parseInt(document.getElementById('timeDelay').value) || 0;
+            
+            // 重置AudioContext
+            if (audioContext) {
+                audioContext.close().then(() => {
+                    audioContext = null;
+                    performPlayback();
+                });
+            } else {
+                performPlayback();
+            }
+            
+            function performPlayback() {
+                // 播放主旋律
+                if (melody.trim()) {
+                    playNotes(melody.split(''), length, 0.3, useVibrato, waveType);
+                    updatePlaybackAnimation(melody, length, 0);
+                }
+                
+                // 播放和声轨道
+                if (harmonyMelody.trim()) {
+                    // 应用音高偏移到和声
+                    let offsetMelody = '';
+                    for (let i = 0; i < harmonyMelody.length; i++) {
+                        if (harmonyMelody[i] !== '0') {
+                            let charCode = harmonyMelody.charCodeAt(i) + pitchOffset;
+                            // 确保在a-z范围内
+                            if (charCode < 97) charCode = 97;
+                            if (charCode > 122) charCode = 122;
+                            offsetMelody += String.fromCharCode(charCode);
+                        } else {
+                            offsetMelody += '0';
+                        }
+                    }
+                    
+                    const timeDelay = timeDelayNotes * length * 1000;
+                    setTimeout(() => {
+                        playNotes(offsetMelody.split(''), length, 0.3, useVibrato, waveType);
+                    }, timeDelay);
+                }
+            }
+        }
+        
+        // 清空所有旋律
+        function clearMelody() {
+            document.getElementById('melody').value = '';
+            document.getElementById('harmonyMelody').value = '';
+            updatePlaybackPreview();
+        }
+        
+        // 更新播放预览可视化
+        function updatePlaybackPreview() {
+            const preview = document.getElementById('playbackPreview');
+            const melody = document.getElementById('melody').value;
+            const harmony = document.getElementById('harmonyMelody').value;
+            const length = parseFloat(document.getElementById('len').value) || 0.5;
+            const timeDelayNotes = parseInt(document.getElementById('timeDelay').value) || 0;
+            const timeDelay = timeDelayNotes * length;
+            
+            // 清除现有可视化
+            while (preview.children.length > 1) { // 保留指示器
+                preview.removeChild(preview.lastChild);
+            }
+            
+            const totalLength = Math.max(melody.length, harmony.length + timeDelayNotes) * length;
+            const pixelsPerSecond = preview.clientWidth / totalLength;
+            
+            // 绘制旋律音符
+            for (let i = 0; i < melody.length; i++) {
+                if (melody[i] && melody[i] !== '0') {
+                    const noteBlock = document.createElement('div');
+                    noteBlock.className = 'note-block';
+                    noteBlock.style.left = (i * length * pixelsPerSecond) + 'px';
+                    noteBlock.style.width = (length * pixelsPerSecond - 2) + 'px';
+                    noteBlock.style.height = '30px';
+                    noteBlock.style.bottom = '10px';
+                    noteBlock.style.backgroundColor = 'rgba(0, 123, 255, 0.3)';
+                    preview.appendChild(noteBlock);
+                }
+            }
+            
+            // 绘制和声音符
+            for (let i = 0; i < harmony.length; i++) {
+                if (harmony[i] && harmony[i] !== '0') {
+                    const noteBlock = document.createElement('div');
+                    noteBlock.className = 'note-block';
+                    noteBlock.style.left = ((i * length + timeDelay) * pixelsPerSecond) + 'px';
+                    noteBlock.style.width = (length * pixelsPerSecond - 2) + 'px';
+                    noteBlock.style.height = '15px';
+                    noteBlock.style.bottom = '45px';
+                    noteBlock.style.backgroundColor = 'rgba(255, 193, 7, 0.3)';
+                    preview.appendChild(noteBlock);
+                }
+            }
+        }
+        
+        // 更新播放动画
+        function updatePlaybackAnimation(melody, length, delay) {
+            const indicator = document.getElementById('playbackIndicator');
+            const preview = document.getElementById('playbackPreview');
+            const totalLength = (melody.length * length) + delay;
+            const pixelsPerSecond = preview.clientWidth / totalLength;
+            
+            let startTime = new Date().getTime() - (delay * 1000);
+            
+            function updatePosition() {
+                const currentTime = (new Date().getTime() - startTime) / 1000;
+                if (currentTime <= totalLength) {
+                    const position = currentTime * pixelsPerSecond;
+                    indicator.style.left = position + 'px';
+                    requestAnimationFrame(updatePosition);
+                } else {
+                    indicator.style.left = '0px';
+                }
+            }
+            
+            updatePosition();
+        }
+        
+        // Save song to localStorage
+        function saveSong() {
+            const songName = document.getElementById('songName').value || '未命名';
+            const songData = {
+                name: songName,
+                melody: document.getElementById('melody').value,
+                harmonyMelody: document.getElementById('harmonyMelody').value,
+                pitchOffset: document.getElementById('pitchOffset').value,
+                timeDelay: document.getElementById('timeDelay').value,
+                noteLength: document.getElementById('len').value,
+                specialMode: document.getElementById('specialMode').checked,
+                vibratoToggle: document.getElementById('vibratoToggle').checked,
+                waveType: document.getElementById('waveType').value,
+                date: new Date().toISOString()
+            };
+            
+            // 获取现有歌曲
+            let savedSongs = JSON.parse(localStorage.getItem('gameMusicSongs') || '[]');
+            
+            // 检查是否存在同名歌曲
+            const existingIndex = savedSongs.findIndex(song => song.name === songName);
+            if (existingIndex >= 0) {
+                // 替换现有歌曲
+                savedSongs[existingIndex] = songData;
+            } else {
+                // 添加新歌
+                savedSongs.push(songData);
+            }
+            
+            // 保存回localStorage
+            localStorage.setItem('gameMusicSongs', JSON.stringify(savedSongs));
+            
+            // 更新已保存歌曲列表
+            loadSavedSongsList();
+            
+            alert('Song saved successfully!');
+        }
+        
+        // 从localStorage加载歌曲
+        function loadSong() {
+            const songName = document.getElementById('songName').value;
+            if (!songName) {
+                alert('Please enter the song name to load.');
+                return;
+            }
+            
+            // 获取现有歌曲
+            const savedSongs = JSON.parse(localStorage.getItem('gameMusicSongs') || '[]');
+            
+            // 查找歌曲
+            const song = savedSongs.find(song => song.name === songName);
+            if (song) {
+                // 加载歌曲数据
+                document.getElementById('melody').value = song.melody;
+                document.getElementById('harmonyMelody').value = song.harmonyMelody;
+                document.getElementById('pitchOffset').value = song.pitchOffset;
+                document.getElementById('timeDelay').value = song.timeDelay;
+                document.getElementById('len').value = song.noteLength;
+                
+                // 加载特殊设置
+                if (song.specialMode !== undefined) {
+                    document.getElementById('specialMode').checked = song.specialMode;
+                }
+                if (song.vibratoToggle !== undefined) {
+                    document.getElementById('vibratoToggle').checked = song.vibratoToggle;
+                }
+                if (song.waveType !== undefined) {
+                    document.getElementById('waveType').value = song.waveType;
+                }
+                
+                // 更新可视化
+                updatePlaybackPreview();
+                
+                alert('Song loaded successfully!');
+            } else {
+                alert('Song not found!');
+            }
+        }
+        
+        // Export song
+        function exportSong() {
+            const exportFormat = document.getElementById('exportFormat').value;
+            const songData = {
+                name: document.getElementById('songName').value || '未命名',
+                melody: document.getElementById('melody').value,
+                harmonyMelody: document.getElementById('harmonyMelody').value,
+                pitchOffset: document.getElementById('pitchOffset').value,
+                timeDelay: document.getElementById('timeDelay').value,
+                noteLength: document.getElementById('len').value,
+                specialMode: document.getElementById('specialMode').checked,
+                vibratoToggle: document.getElementById('vibratoToggle').checked,
+                waveType: document.getElementById('waveType').value
+            };
+            
+            let exportContent = '';
+            let fileName = songData.name.replace(/[^a-zA-Z0-9]/g, '_') + '.';
+            
+            if (exportFormat === 'json') {
+                exportContent = JSON.stringify(songData, null, 2);
+                fileName += 'json';
+            } else {
+                // 导出为旋律字符串
+                exportContent = `// 游戏音乐 - ${songData.name}\n`;
+                exportContent += `const melody = "${songData.melody}";\n`;
+                exportContent += `const harmony = "${songData.harmonyMelody}";\n`;
+                exportContent += `const pitchOffset = ${songData.pitchOffset};\n`;
+                exportContent += `const timeDelay = ${songData.timeDelay};\n`;
+                exportContent += `const noteLength = ${songData.noteLength};\n`;
+                exportContent += `const specialMode = ${songData.specialMode};\n`;
+                exportContent += `const useVibrato = ${songData.vibratoToggle};\n`;
+                exportContent += `const waveType = "${songData.waveType}";`;
+                fileName += 'js';
+            }
+            
+            // 创建下载链接
+            const blob = new Blob([exportContent], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = fileName;
+            a.click();
+            
+            // 清理
+            URL.revokeObjectURL(url);
+        }
+        
+        // Load saved songs list
+        function loadSavedSongsList() {
+            const savedSongsContainer = document.getElementById('savedSongs');
+            savedSongsContainer.innerHTML = '';
+            
+            // 获取现有歌曲
+            const savedSongs = JSON.parse(localStorage.getItem('gameMusicSongs') || '[]');
+            
+            if (savedSongs.length === 0) {
+                savedSongsContainer.innerHTML = '<p>No saved songs.</p>';
+                return;
+            }
+            
+            // 创建已保存歌曲列表
+            const ul = document.createElement('ul');
+            ul.style.textAlign = 'left';
+            ul.style.display = 'inline-block';
+            
+            savedSongs.forEach(song => {
+                const li = document.createElement('li');
+                const date = new Date(song.date);
+                li.innerHTML = `<strong>${song.name}</strong> (${date.toLocaleDateString()} ${date.toLocaleTimeString()})`;
+                
+                // 添加加载按钮
+                const loadBtn = document.createElement('button');
+                loadBtn.textContent = '加载';
+                loadBtn.className = 'preset-btn';
+                loadBtn.style.marginLeft = '10px';
+                loadBtn.onclick = function() {
+                    document.getElementById('songName').value = song.name;
+                    loadSong();
+                };
+                
+                li.appendChild(loadBtn);
+                ul.appendChild(li);
+            });
+            
+            savedSongsContainer.appendChild(ul);
+        }
+        
+        // Load preset
+        function loadPreset(presetType) {
+            const presets = {
+                scale: {
+                    len: 0.5,
+                    melody: 'cdefgab',
+                    harmony: '',
+                    pitchOffset: 0,
+                    timeDelay: 0,
+                    specialMode: false,
+                    vibratoToggle: false,
+                    waveType: 'sine'
+                },
+                simple: {
+                    len: 0.5,
+                    melody: 'cgcgcg',
+                    harmony: 'egbegb',
+                    pitchOffset: 4,
+                    timeDelay: 0,
+                    specialMode: false,
+                    vibratoToggle: false,
+                    waveType: 'sine'
+                },
+                longer: {
+                    len: 0.5,
+                    melody: 'abcdefgabagfedcba',
+                    harmony: 'cdefgabdcbagfedcb',
+                    pitchOffset: 4,
+                    timeDelay: 0,
+                    specialMode: false,
+                    vibratoToggle: false,
+                    waveType: 'sine'
+                },
+                staccato: {
+                    len: 0.3,
+                    melody: 'c0c0d0d0e0e0f0f0',
+                    harmony: 'g0g0a0a0b0b0c0c0',
+                    pitchOffset: 7,
+                    timeDelay: 0,
+                    specialMode: false,
+                    vibratoToggle: false,
+                    waveType: 'sine'
+                },
+                demonKing: {
+                    // Demon King style: deep, oppressive, dissonant sounds, strong rhythm contrast
+                    len: 0.6,
+                    melody: 'd#d#d#d#f#f#f#f#a#a#a#a#c#c#c#c#d#d#d#d#0000',
+                    harmony: 'a#a#a#a#c#c#c#c#d#d#d#d#f#f#f#f#a#a#a#a#0000',
+                    pitchOffset: 7,
+                    timeDelay: 1,
+                    specialMode: true,
+                    vibratoToggle: true,
+                    waveType: 'sawtooth'
+                },
+                harryPotter: {
+                    // Harry Potter style: mystical, dreamy magical feel
+                    len: 0.4,
+                    melody: 'hfehfehefhefhehfehfefhefghfe',
+                    harmony: 'cccccccccccccccccccccccccccccc',
+                    pitchOffset: -3,
+                    timeDelay: 0,
+                    specialMode: false,
+                    vibratoToggle: true,
+                    waveType: 'sine'
+                },
+                relaxedDemon: {
+                    // Relaxed Demon style: combines beautiful melody of soft music with Demon style special effects
+                    len: 1.0,
+                    melody: 'cdefgfedc0dfegefd0efgfedc000',
+                    harmony: 'cccccccc0dddddddd0eeeeeeee000',
+                    pitchOffset: 4,
+                    timeDelay: 0,
+                    specialMode: true,
+                    vibratoToggle: true,
+                    waveType: 'sawtooth'
+                }
+            };
+            
+            const preset = presets[presetType];
+            if (preset) {
+                // 应用预设值
+                document.getElementById('len').value = preset.len;
+                document.getElementById('melody').value = preset.melody;
+                document.getElementById('harmonyMelody').value = preset.harmony;
+                document.getElementById('pitchOffset').value = preset.pitchOffset;
+                document.getElementById('timeDelay').value = preset.timeDelay;
+                document.getElementById('specialMode').checked = preset.specialMode;
+                document.getElementById('vibratoToggle').checked = preset.vibratoToggle;
+                document.getElementById('waveType').value = preset.waveType;
+                
+                // 更新可视化预览
+                updatePlaybackPreview();
+                
+                // 自动播放预览
+                setTimeout(playBothTracks, 300);
+            }
+        }
+        
+        // 初始化编辑器
+        window.onload = function() {
+            initPiano();
+            updatePlaybackPreview();
+            loadSavedSongsList();
+        };
+        
+        // 窗口大小改变时更新预览
+        window.onresize = function() {
+            updatePlaybackPreview();
+        };
+        
+        // 添加键盘快捷键播放所有轨道（空格键）
+        document.addEventListener('keydown', function(e) {
+            if (e.code === 'Space' && !e.target.matches('input, textarea, select, button')) {
+                e.preventDefault();
+                playBothTracks();
+            }
+        });
+    </script>
+</body>
+</html>
